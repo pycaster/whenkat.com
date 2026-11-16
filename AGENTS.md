@@ -82,3 +82,12 @@ these two sections. Contact links can be ordinary links, not a third section.
 - Use a fresh calendar version in `VERSION` for an authorized release. Do not
   overwrite a published version. Deployment selects that release separately.
 - Summarize changes, validation, and remaining review items before handoff.
+
+- `main` is protected, including for admins. Publish code through a pull request
+  and required checks; do not push directly or bypass protections.
+- Keep action references pinned to full commit SHAs. Image releases require the
+  `production-image` environment and explicit owner approval, in addition to the
+  manual dispatch from `main`. Keep package-write permission confined to that job.
+- This is an owner-only repository: only `pycaster` contributions are accepted.
+  Do not add collaborators. Preserve the trusted, metadata-only owner check;
+  never check out PR code in its `pull_request_target` workflow.
