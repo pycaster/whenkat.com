@@ -99,6 +99,10 @@ workflow manually from `main` with **Publish a container image** enabled to push
 reuse a published version. The image also receives a `sha-<commit>` tag and OCI
 source/revision labels. No `latest` tag is published.
 
+Image publication also requires approval from `pycaster` in the
+`production-image` environment, which accepts protected branches. The workflow
+still restricts publication to `main`.
+
 The workflow uses its repository-scoped `GITHUB_TOKEN`; no private infrastructure
 repository credentials are needed. GHCR packages initially default to private;
 verify package visibility and cluster pull access before selecting the image for
@@ -120,3 +124,21 @@ historical accounts, not instructions for the release process above.
 All posts in `src/content/blog/` are included in builds. There is no private draft
 or scheduled-publication filter. Keep private notes and career evidence outside
 this repository; review and sanitize material before adding it here.
+
+## Repository protections
+
+`main` requires a pull request with passing `build`, `Filesystem vulnerabilities`,
+and `Blog container image` checks from GitHub Actions. The branch must be current,
+conversations resolved, and history linear. These rules apply to administrators;
+force-pushes and deletion are disabled. Since this is a single-maintainer repo,
+merging an author's own PR is supported; a second person's approval is not required.
+
+All workflow actions are pinned to reviewed commit SHAs. CI tokens default to
+read-only, fork workflows require approval for external contributors, and only the
+manual release job receives package-write permission after environment approval.
+The public repository has no cluster or private-repository deployment credentials.
+The private deployment repository selects an explicit image digest, so merging
+website code or publishing a replacement tag cannot by itself change the live site.
+
+These controls do not replace reviewing code and dependency changes. An account
+with repository administration access can still change repository settings.
