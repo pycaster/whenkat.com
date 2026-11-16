@@ -127,8 +127,8 @@ this repository; review and sanitize material before adding it here.
 
 ## Repository protections
 
-`main` requires a pull request with passing `build`, `Filesystem vulnerabilities`,
-and `Blog container image` checks from GitHub Actions. The branch must be current,
+`main` requires a pull request with passing `Owner-only contribution`, `build`,
+`Filesystem vulnerabilities`, and `Blog container image` checks from GitHub Actions. The branch must be current,
 conversations resolved, and history linear. These rules apply to administrators;
 force-pushes and deletion are disabled. Since this is a single-maintainer repo,
 merging an author's own PR is supported; a second person's approval is not required.
@@ -142,3 +142,11 @@ website code or publishing a replacement tag cannot by itself change the live si
 
 These controls do not replace reviewing code and dependency changes. An account
 with repository administration access can still change repository settings.
+
+Only `pycaster` has repository write access, and contributions are accepted only
+from that account and branches in this repository. A required metadata-only
+`pull_request_target` workflow checks identity from the trusted base branch; it
+never checks out or executes PR code. Public forks and PRs remain possible, but
+external contributions are rejected. Image publication also checks the triggering
+account and requires `pycaster` approval. Do not add collaborators or grant other
+accounts write access without the owner's explicit instruction.

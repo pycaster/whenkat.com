@@ -88,3 +88,6 @@ these two sections. Contact links can be ordinary links, not a third section.
 - Keep action references pinned to full commit SHAs. Image releases require the
   `production-image` environment and explicit owner approval, in addition to the
   manual dispatch from `main`. Keep package-write permission confined to that job.
+- This is an owner-only repository: only `pycaster` contributions are accepted.
+  Do not add collaborators. Preserve the trusted, metadata-only owner check;
+  never check out PR code in its `pull_request_target` workflow.

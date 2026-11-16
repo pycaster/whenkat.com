@@ -1,0 +1,29 @@
+name: Owner-only contributions
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owner-only:
+    name: Owner-only contribution
+    runs-on: ubuntu-latest
+    steps:
+      # This workflow runs from the trusted base branch. Never check out or run
+      # PR code here, and never grant this metadata-only job write permissions.
+      - name: Require the owner and this repository
+        env:
+          ACTOR: ${{ github.actor }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login || github.actor }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        run: |
+          if [ "$ACTOR" != "pycaster" ] || [ "$PR_AUTHOR" != "pycaster" ] || [ "$HEAD_REPOSITORY" != "pycaster/whenkat.com" ]; then
+            echo "Only pycaster's contributions from this repository are accepted."
+            exit 1
+          fi

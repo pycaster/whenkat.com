@@ -52,7 +52,7 @@ jobs:
           tags: whenkat:check
 
   publish:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main' && github.actor == 'pycaster'
     needs: build
     environment: production-image
     runs-on: ubuntu-latest
