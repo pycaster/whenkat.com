@@ -1,0 +1,194 @@
+{
+  "/blog/episode-01-home-ai-server-research/": {
+    "hash": "d110b9327fac4f9c",
+    "terms": [
+      "ai",
+      "amd",
+      "dram",
+      "epyc",
+      "gpu",
+      "llm",
+      "lrdimm",
+      "nvme",
+      "psu",
+      "ram",
+      "socket",
+      "ssd"
+    ],
+    "aliases": {
+      "dram": "ddr4",
+      "llm": "models",
+      "ssd": "nvme"
+    }
+  },
+  "/blog/episode-02-home-ai-server-gpu/": {
+    "hash": "6c3424a38e67fc04",
+    "terms": [
+      "cpp",
+      "cuda",
+      "ebay",
+      "epyc",
+      "gpu",
+      "llama",
+      "nvidia",
+      "ollama",
+      "pytorch",
+      "ram",
+      "rtx",
+      "vram"
+    ],
+    "aliases": {}
+  },
+  "/blog/homelab-ep1-proxmox/": {
+    "hash": "57708a6836c0a845",
+    "terms": [
+      "centos",
+      "debian",
+      "docker",
+      "fedora",
+      "k8s",
+      "kali",
+      "kubernetes",
+      "kvm",
+      "lxc",
+      "proxmox",
+      "rhel",
+      "ubuntu"
+    ],
+    "aliases": {}
+  },
+  "/blog/homelab-ep2-talos/": {
+    "hash": "31f89387e0669e12",
+    "terms": [
+      "cilium",
+      "cni",
+      "etcd",
+      "k3s",
+      "k8s",
+      "kube",
+      "kubeadm",
+      "kubernetes",
+      "opentofu",
+      "proxmox",
+      "proxy",
+      "talos"
+    ],
+    "aliases": {
+      "k8s": "kubernetes"
+    }
+  },
+  "/blog/homelab-ep3-networking/": {
+    "hash": "67bc1f8ee037f2bd",
+    "terms": [
+      "arp",
+      "cilium",
+      "ebpf",
+      "fabric",
+      "gateway",
+      "ingress",
+      "kube",
+      "kubernetes",
+      "l2",
+      "nginx",
+      "proxy",
+      "talos"
+    ],
+    "aliases": {}
+  },
+  "/blog/homelab-ep4-outside-the-cluster/": {
+    "hash": "67449ad58f7525f4",
+    "terms": [
+      "adguard",
+      "argocd",
+      "dns",
+      "k8s",
+      "kubernetes",
+      "lxc",
+      "minio",
+      "opentofu",
+      "proxmox",
+      "state",
+      "talos",
+      "vm"
+    ],
+    "aliases": {
+      "k8s": "kubernetes"
+    }
+  },
+  "/blog/homelab-ep5-argocd/": {
+    "hash": "f9334a718fb5a0be",
+    "terms": [
+      "argocd",
+      "compose",
+      "docker",
+      "drift",
+      "flux",
+      "git",
+      "gitops",
+      "heal",
+      "helm",
+      "k8s",
+      "kubernetes",
+      "prune"
+    ],
+    "aliases": {
+      "heal": "selfheal"
+    }
+  },
+  "/blog/logging-in-go-apps/": {
+    "hash": "16ce7ce750f3de91",
+    "terms": [
+      "golang",
+      "grafana",
+      "log",
+      "microservices",
+      "opentelemetry",
+      "otel",
+      "slog",
+      "span",
+      "sre",
+      "tracing"
+    ],
+    "aliases": {
+      "golang": "go"
+    }
+  },
+  "/blog/own-your-platform-ep1-leaving-medium/": {
+    "hash": "cda4d2397876ebbe",
+    "terms": [
+      "argocd",
+      "astro",
+      "docker",
+      "ghost",
+      "github",
+      "gitops",
+      "hugo",
+      "jekyll",
+      "kubernetes",
+      "markdown",
+      "medium",
+      "postgresql"
+    ],
+    "aliases": {}
+  },
+  "/blog/own-your-platform-ep2-self-hosting/": {
+    "hash": "20528bd58360af94",
+    "terms": [
+      "astro",
+      "cloudflare",
+      "cloudflared",
+      "encrypt",
+      "fabric",
+      "gateway",
+      "k8s",
+      "kubernetes",
+      "nginx",
+      "opentofu",
+      "proxmox",
+      "terraform"
+    ],
+    "aliases": {
+      "k8s": "kubernetes"
+    }
+  }
+}

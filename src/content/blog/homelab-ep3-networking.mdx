@@ -1,0 +1,182 @@
+---
+title: 'LoadBalancer IPs on bare metal Kubernetes with Cilium'
+description: 'A bare metal cluster has no load balancer to hand out IPs. Cilium solves that. It could also handle L7 routing, but I gave that job to NGINX instead, and I have a reason.'
+pubDate: 'Sep 05 2026'
+series: 'Building the Homelab'
+seriesOrder: 3
+---
+
+import DiagramLink from '../../components/DiagramLink.astro';
+import lbTopology from '../../assets/diagrams/lb-topology.svg?raw';
+import acmeDns01 from '../../assets/diagrams/acme-dns01.svg?raw';
+
+
+At the end of the last episode I had a Kubernetes cluster where nothing could talk to anything.
+
+That was on purpose. I told Talos to skip the CNI and disable kube-proxy. So the nodes came up healthy and the pods came up unable to reach each other. This episode is about filling that hole, and about a decision I made on top of it that most people would make differently.
+
+## The problem nobody warns you about
+
+On a cloud provider, you create a Service of type LoadBalancer and you get an IP. Something out there notices, provisions a load balancer, and wires it up.
+
+On bare metal, nothing notices. The service sits in pending forever. There is no cloud controller listening. Your cluster has no way to give a service an address that anything on your network can reach.
+
+This is the first thing that actually blocks you after bootstrap. You can run pods all day. You just can't reach them.
+
+## Cilium
+
+I picked Cilium for the networking layer. It handles four things I needed and I didn't want four tools.
+
+It's the CNI, so pods get IPs and can route to each other. It replaces kube-proxy using eBPF, which is why I disabled kube-proxy in the Talos config. It does L2 announcements, which is the answer to the LoadBalancer problem above. And it supports Gateway API, which I'll come back to because I chose not to use that part.
+
+Installing it on Talos has two flags that will waste your afternoon if you miss them.
+
+```bash
+helm install cilium cilium/cilium \
+  --namespace kube-system \
+  --set kubeProxyReplacement=true \
+  --set k8sServiceHost=localhost \
+  --set k8sServicePort=7445 \
+  --set cgroup.autoMount.enabled=false \
+  --set cgroup.hostRoot=/sys/fs/cgroup \
+  --set l2announcements.enabled=true \
+  --set externalIPs.enabled=true \
+  --set gatewayAPI.enabled=true
+```
+
+The API server is on localhost port 7445, not 6443. Talos runs a local proxy on every node so nothing needs to know the control plane address. And the cgroup flags are there because Talos mounts cgroups its own way. Cilium will not start without being told where they are.
+
+## How a LoadBalancer IP actually appears
+
+Two resources set up the pool.
+
+```yaml
+apiVersion: cilium.io/v2alpha1
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: lan-pool
+spec:
+  blocks:
+    - start: "192.168.20.60"
+      stop: "192.168.20.80"
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumL2AnnouncementPolicy
+metadata:
+  name: lan-policy
+spec:
+  interfaces:
+    - ^eth[0-9]+
+  loadBalancerIPs: true
+```
+
+I carved a slice out of my LAN range and told Cilium it owns those addresses. The announcement policy tells it to advertise them over ARP.
+
+When a LoadBalancer service is created, Cilium takes an IP from the pool and sends a gratuitous ARP saying that address lives at this node's MAC. The router hears it and starts forwarding. That's the whole mechanism.
+
+No router config. No BGP. No static routes. ARP is doing the same thing it does for every other device on your network, and the service is now just another thing on the LAN.
+
+<DiagramLink
+	svg={lbTopology}
+	href="/docs/k8s-networking.html#l2-external-access-loadbalancer"
+	label="Diagram"
+	caption="The same path drawn out, browser through to pod. Part of the full cluster network topology."
+/>
+
+I found this genuinely satisfying the first time it worked.
+
+## Now the part where I disagree with the internet
+
+Cilium can do L7 routing too. It has Gateway API support built in, backed by Envoy. I turned that flag on in the Helm install. If I wanted to, Cilium could terminate TLS, match hostnames, and route HTTP to services, and I would be done. One tool, whole stack.
+
+I didn't do that. My Gateway config has a switch in it:
+
+```yaml
+spec:
+  # "nginx"  -> NGINX Gateway Fabric
+  # "cilium" -> Cilium / Envoy
+  gatewayClassName: nginx
+```
+
+Both are wired up. I picked Nginx.
+
+## Why Nginx
+
+The honest answer to "why Nginx" is that I build this for a living. But that's also why it's worth writing about. My homelab is the only place I get to be the customer instead of the person shipping it.
+
+My gateway registers with NGINX One Console using a dataplane key. Same setup a real customer would have. The fleet is three pods in my house.
+
+That turned out to matter more than I expected, but the story is long enough that it gets its own episode. Short version: I spent an evening on a 503 that produced no error anywhere in Kubernetes, and the only place the actual cause was visible was in the generated Nginx config.
+
+NGINX Gateway Fabric is a real Gateway API implementation. It is not a shim bolted onto the old ingress controller. If the last time you thought about Nginx was as the thing your ingress happens to run on, it's worth another look.
+
+So Cilium owns L3 and L4. Nginx owns L7.
+
+## Gateway API
+
+I went with Gateway API rather than Ingress. Ingress is not the wrong answer. It runs an enormous amount of production traffic and for a lot of setups it's still exactly what you want.
+
+I picked Gateway API for how it splits ownership.
+
+```
+Gateway
+  owns the listeners, the ports, the TLS certs
+  says which namespaces are allowed to attach
+
+HTTPRoute
+  owns one hostname and where it goes
+  lives in the app's own namespace
+```
+
+I have one Gateway called homelab. Every service that needs to be reachable brings its own HTTPRoute, in its own namespace, in its own file. The blog, ArgoCD, Grafana, Immich. Adding a new one touches nothing that already exists.
+
+That's the part I actually wanted. Back on Docker I had a single Nginx config that every service had to be added to by hand, and every change meant editing a file that everything else depended on. Now nothing is shared except the Gateway itself.
+
+In a homelab that's mostly a tidiness win. At real scale it's a permissions boundary between the team that owns the edge and the teams that own services, which is the problem the API was actually designed for.
+
+## TLS
+
+For services on my internal domain, cert-manager gets certificates from Let's Encrypt using a DNS01 challenge through DuckDNS.
+
+```yaml
+solvers:
+  - dns01:
+      webhook:
+        groupName: acme.duckdns.org
+        solverName: duckdns
+```
+
+DNS01 means Let's Encrypt proves ownership by checking a TXT record instead of hitting port 80. Nothing has to be exposed to the internet for it to work. cert-manager writes the record, Let's Encrypt reads it, a certificate lands in a Kubernetes secret, and the Gateway picks it up.
+
+<DiagramLink
+	svg={acmeDns01}
+	href="/docs/https-infrastructure.html#acme-how-the-certificate-gets-issued"
+	label="Diagram"
+	caption="The full ACME exchange, from cert-manager noticing an annotation to a certificate landing in a secret."
+	accent="--accent-cert"
+/>
+
+## What this adds up to
+
+Every piece from this episode lines up into one path:
+
+```
+Device on my LAN
+  DNS resolves the hostname to the gateway's IP
+  Cilium announced that IP over ARP, so the router knows where to send it
+  the packet lands on a node
+  NGF matches the hostname against an HTTPRoute
+  the request reaches the service
+```
+
+Five moving parts, and each one only exists because the one before it doesn't cover that job. Cilium can't match hostnames. NGF can't get an IP on the LAN by itself. Neither of them resolves names.
+
+Worth being clear about the scope here. This is my LAN only. Nothing in the cluster is reachable from the internet at this point, and my router still has no ports open. Getting traffic in from outside without changing that is a genuinely separate problem and it gets its own episode later in this series.
+
+The useful part is that adding it later won't disturb any of this. Whatever path external traffic takes, it ends up inside the cluster hitting the same NGF instance and the same HTTPRoutes. One set of routing rules no matter where the request came from.
+
+## Next
+
+The cluster can run services and expose them now.
+
+But two of the things I need to reach through this gateway don't run in the cluster at all, and they can't. Next episode: why DNS and OpenTofu state have to live outside the cluster that depends on them.

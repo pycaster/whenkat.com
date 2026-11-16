@@ -1,0 +1,27 @@
+---
+// Copy to src/pages/index.astro AFTER adapting this small mapping to your schema.
+import { getCollection } from 'astro:content';
+import HomePage from '../whenkat/components/HomePage.astro';
+import type { PostSummary } from '../whenkat/types';
+const entries = await getCollection('blog', ({ data }) => !data.draft);
+// These example field names are not assumptions about your repository.
+// Use your current URL helper so published URLs do not change.
+const posts: PostSummary[] = entries.map(entry => ({
+  title: entry.data.title,
+  href: `/blog/${entry.id}/`,
+  date: entry.data.pubDate,
+  description: entry.data.description,
+  series: entry.data.series,
+  order: entry.data.seriesOrder,
+}));
+const featured = posts.find(post => post.href === '/blog/homelab-ep1-proxmox/') ?? posts[0];
+const feature = featured ? {
+  post: featured,
+  ...(featured.href === '/blog/homelab-ep1-proxmox/' ? {
+    headline: 'Sometimes the\nnext upgrade\nis a clean slate.',
+    description: 'Ubuntu updates kept breaking my NVIDIA drivers.\nSo I moved to Proxmox.',
+    label: '001 — HOMELAB',
+  } : {}),
+} : undefined;
+---
+<HomePage posts={posts} feature={feature} />

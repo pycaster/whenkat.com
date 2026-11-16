@@ -1,0 +1,27 @@
+---
+import SiteLayout from './SiteLayout.astro';
+import { dateLabel, dateValue } from '../lib/posts';
+import { whenkat as site } from '../config';
+import type { PostSummary } from '../types';
+interface Props {
+  title: string; date: Date | string; description?: string;
+  canonical?: string; socialImage?: string; series?: string;
+  previous?: Pick<PostSummary, 'title' | 'href'>; next?: Pick<PostSummary, 'title' | 'href'>;
+}
+const { title, date, description, canonical, socialImage, series, previous, next } = Astro.props;
+---
+<SiteLayout title={title} description={description} canonical={canonical} socialImage={socialImage} type="article">
+  <Fragment slot="head"><meta property="article:published_time" content={dateValue(date).toISOString()} /><slot name="head" /></Fragment>
+  <main class="article-main" id="main-content">
+    <a class="mono back" href={site.articles}>← BACK TO ARTICLES</a>
+    <div class="article-heading"><time class="mono" datetime={dateValue(date).toISOString()}>{dateLabel(date)}</time><h1>{title}</h1></div>
+    <article class="prose"><slot /></article>
+    {(previous || next) && <nav class="series-nav" aria-label="More in this series">
+      {series && <div class="series-name">{series}</div>}
+      {previous && <a href={previous.href} rel="prev"><span class="nav-label">Previous</span><span class="nav-title">{previous.title}</span></a>}
+      {next && <a href={next.href} rel="next"><span class="nav-label">Next in this series</span><span class="nav-title">{next.title}</span></a>}
+    </nav>}
+    {Astro.slots.has('comments') && <section class="comments" aria-label="Comments"><slot name="comments" /></section>}
+    <div class="article-end"><a href={site.articles}>Back to articles ↑</a></div>
+  </main>
+</SiteLayout>

@@ -1,0 +1,15 @@
+/* Interactive core: artwork remains the no-JS and low-motion fallback. */
+.core-scene { position:relative; overflow:hidden; min-height:424px; background:#080a08; isolation:isolate; }
+.core-scene > img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity .6s; }
+.core-scene > canvas { position:absolute; inset:0; width:100%; height:100%; opacity:0; transition:opacity .6s; pointer-events:none; }
+.core-scene.core-ready > canvas { opacity:1; }
+.core-scene.core-ready > img { opacity:0; }
+.core-controls { position:absolute; z-index:2; left:22px; right:22px; bottom:22px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.core-controls .mono { font-size:11px; color:#b9c2a6; }
+.core-toggle { color:#e5eadb; font:12px 'IBM Plex Mono',monospace; border:1px solid #657348; padding:10px 13px; border-radius:4px; background:#10160ce6; cursor:pointer; min-height:40px; }
+.core-toggle:hover { color:#d6fc51; border-color:#d6fc51; }
+.core-toggle:focus-visible { outline:2px solid #d6fc51; outline-offset:4px; }
+.core-toggle[hidden] { display:none; }
+@media(max-width:1000px){.core-scene{min-height:390px}}
+@media(max-width:650px){.core-scene{height:300px;min-height:300px}.core-controls{left:18px;right:18px;bottom:18px}.core-controls .mono{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.core-scene>canvas,.core-scene>img{transition:none}}

@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTTPS Infrastructure</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0c0e14;
+    --bg-elevated: #141722;
+    --bg-node: #1a1e2e;
+    --bg-pod: #1e2340;
+    --border: #2a2f45;
+    --border-accent: #3d4466;
+    --text: #c8cdd8;
+    --text-muted: #6b7394;
+    --text-heading: #e2e6f0;
+    --accent-tls: #22d3ee;
+    --accent-tls-dim: #0c3644;
+    --accent-cert: #a78bfa;
+    --accent-cert-dim: #2d1f5e;
+    --accent-dns: #5b8def;
+    --accent-dns-dim: #2a3d6e;
+    --accent-le: #4ade80;
+    --accent-le-dim: #0d3a1e;
+    --accent-lb: #f472b6;
+    --accent-lb-dim: #4a1535;
+    --accent-cilium: #f59e0b;
+    --accent-cilium-dim: #4a3510;
+    --flow-line: #3d4466;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6fa;
+      --bg-elevated: #ffffff;
+      --bg-node: #eef0f6;
+      --bg-pod: #e4e7f2;
+      --border: #c8cdd8;
+      --border-accent: #a0a8c4;
+      --text: #2a2f45;
+      --text-muted: #6b7394;
+      --text-heading: #141722;
+      --accent-tls: #0891b2;
+      --accent-tls-dim: #dff5fa;
+      --accent-cert: #7c3aed;
+      --accent-cert-dim: #ede4fa;
+      --accent-dns: #2d6ae0;
+      --accent-dns-dim: #dce6fa;
+      --accent-le: #16a34a;
+      --accent-le-dim: #dcfce7;
+      --accent-lb: #db2777;
+      --accent-lb-dim: #fce7f3;
+      --accent-cilium: #d97706;
+      --accent-cilium-dim: #fef3c7;
+      --flow-line: #a0a8c4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6fa;
+    --bg-elevated: #ffffff;
+    --bg-node: #eef0f6;
+    --bg-pod: #e4e7f2;
+    --border: #c8cdd8;
+    --border-accent: #a0a8c4;
+    --text: #2a2f45;
+    --text-muted: #6b7394;
+    --text-heading: #141722;
+    --accent-tls: #0891b2;
+    --accent-tls-dim: #dff5fa;
+    --accent-cert: #7c3aed;
+    --accent-cert-dim: #ede4fa;
+    --accent-dns: #2d6ae0;
+    --accent-dns-dim: #dce6fa;
+    --accent-le: #16a34a;
+    --accent-le-dim: #dcfce7;
+    --accent-lb: #db2777;
+    --accent-lb-dim: #fce7f3;
+    --accent-cilium: #d97706;
+    --accent-cilium-dim: #fef3c7;
+    --flow-line: #a0a8c4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem 1.5rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 2.5rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  h2 .label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-node);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1rem 0.4rem;
+  }
+
+  section { margin-bottom: 3rem; }
+
+  .diagram {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+
+  .diagram svg {
+    display: block;
+    margin: 0 auto;
+    width: 100%;
+    height: auto;
+  }
+
+  .note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.5;
+    margin-top: 0.75rem;
+  }
+
+  code {
+    background: var(--bg-node);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    font-weight: 500;
+  }
+
+  .tag-tls { background: var(--accent-tls-dim); color: var(--accent-tls); }
+  .tag-cert { background: var(--accent-cert-dim); color: var(--accent-cert); }
+  .tag-dns { background: var(--accent-dns-dim); color: var(--accent-dns); }
+  .tag-le { background: var(--accent-le-dim); color: var(--accent-le); }
+  .tag-lb { background: var(--accent-lb-dim); color: var(--accent-lb); }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .layers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .layer-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+  }
+
+  .layer-card h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .layer-card p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .file-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .file-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .file-table tr:last-child td { border-bottom: none; }
+
+  .step-list {
+    list-style: none;
+    counter-reset: steps;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+
+  .step-list li {
+    counter-increment: steps;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .step-list li::before {
+    content: counter(steps);
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 4px;
+    margin-top: 0.1rem;
+  }
+
+  .step-list.tls li::before {
+    background: var(--accent-tls-dim);
+    color: var(--accent-tls);
+    border: 1px solid var(--accent-tls);
+  }
+
+  .step-list.cert li::before {
+    background: var(--accent-cert-dim);
+    color: var(--accent-cert);
+    border: 1px solid var(--accent-cert);
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 1.25rem 1rem; }
+    h1 { font-size: 1.25rem; }
+    .diagram { padding: 1rem; }
+    .layers { grid-template-columns: 1fr; }
+  }
+
+  h2[id], h3[id] { scroll-margin-top: 4.5rem; }
+</style>
+
+<style>
+  .site-return {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: .5rem;
+    padding: .7rem 1.25rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: .82rem;
+    background: color-mix(in srgb, var(--bg, #0c0e14) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border, #2a2f45);
+  }
+  .site-return a { color: var(--text-muted, var(--muted, #6b7394)); text-decoration: none; }
+  .site-return a:hover { color: var(--text-heading, var(--text, #e2e6f0)); }
+  .site-return .sep { color: var(--border, #2a2f45); }
+  .site-return .here { color: var(--text-heading, var(--text, #e2e6f0)); font-weight: 500; }
+</style>
+</head>
+<body>
+<nav class="site-return"><a href="/">whenkat.com</a><span class="sep">/</span><a href="/docs">Docs</a><span class="sep">/</span><span class="here">HTTPS Infrastructure</span></nav>
+
+
+<h1>HTTPS Infrastructure</h1>
+<p class="subtitle">proxmox-k8s · cert-manager + Let's Encrypt DNS-01 via DuckDNS</p>
+
+<!-- SECTION: Overview — how a request gets HTTPS -->
+<section>
+  <h2 id="tls-request-lifecycle"><span class="label">TLS</span> Request lifecycle</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-tls" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-tls)"/>
+        </marker>
+        <marker id="arr-cert" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-cert)"/>
+        </marker>
+        <marker id="arr-m" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--flow-line)"/>
+        </marker>
+      </defs>
+
+      <!-- Client -->
+      <rect x="30" y="60" width="130" height="60" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1"/>
+      <text x="50" y="82" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-heading)" font-weight="600">Browser / App</text>
+      <text x="50" y="100" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">homelab</text>
+      <text x="50" y="112" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">.duckdns.org</text>
+
+      <!-- Arrow: client → Gateway -->
+      <line x1="160" y1="90" x2="220" y2="90" stroke="var(--accent-tls)" stroke-width="2" marker-end="url(#arr-tls)"/>
+      <text x="170" y="82" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-tls)">HTTPS</text>
+
+      <!-- Gateway -->
+      <rect x="224" y="40" width="200" height="100" rx="4" fill="var(--bg-pod)" stroke="var(--accent-tls)" stroke-width="1.5"/>
+      <text x="244" y="62" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent-tls)" font-weight="700">Gateway</text>
+      <text x="330" y="62" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-muted)">homelab</text>
+      <text x="244" y="82" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">listener: HTTPS :443</text>
+      <text x="244" y="98" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">tls.mode: Terminate</text>
+
+      <!-- TLS secret ref -->
+      <rect x="244" y="110" width="160" height="22" rx="3" fill="var(--accent-tls-dim)" stroke="var(--accent-tls)" stroke-width="1"/>
+      <text x="256" y="125" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-tls)" font-weight="500">certificateRef: homelab-tls</text>
+
+      <!-- NGINX data plane -->
+      <rect x="470" y="50" width="170" height="80" rx="4" fill="var(--bg-pod)" stroke="var(--accent-lb)" stroke-width="1.5"/>
+      <text x="490" y="72" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-lb)" font-weight="600">NGINX data plane</text>
+      <text x="490" y="90" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">TLS termination</text>
+      <text x="490" y="106" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">host/path matching</text>
+      <text x="490" y="122" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">→ upstream proxy</text>
+      <line x1="424" y1="90" x2="466" y2="90" stroke="var(--accent-tls)" stroke-width="1.5" marker-end="url(#arr-tls)"/>
+
+      <!-- Backend -->
+      <rect x="690" y="60" width="150" height="60" rx="4" fill="var(--bg-pod)" stroke="var(--accent-le)" stroke-width="1.5"/>
+      <text x="710" y="82" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-le)" font-weight="600">Immich</text>
+      <text x="710" y="100" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">port 2283 (HTTP)</text>
+      <text x="710" y="112" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">via HTTPRoute</text>
+      <line x1="640" y1="90" x2="686" y2="90" stroke="var(--flow-line)" stroke-width="1.5" marker-end="url(#arr-m)"/>
+      <text x="646" y="82" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--text-muted)">HTTP</text>
+
+      <!-- Separator line -->
+      <line x1="30" y1="170" x2="860" y2="170" stroke="var(--border)" stroke-width="1" stroke-dasharray="2,4"/>
+      <text x="30" y="190" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)" font-weight="500">Certificate supply chain — runs automatically, not per-request</text>
+
+      <!-- cert-manager -->
+      <rect x="224" y="210" width="200" height="70" rx="4" fill="var(--bg-pod)" stroke="var(--accent-cert)" stroke-width="1.5"/>
+      <text x="244" y="232" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent-cert)" font-weight="700">cert-manager</text>
+      <text x="244" y="252" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">watches Gateway annotations</text>
+      <text x="244" y="268" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">creates Certificate CRs</text>
+
+      <!-- Arrow: cert-manager → Gateway secret -->
+      <path d="M 324 210 L 324 145" fill="none" stroke="var(--accent-cert)" stroke-width="1.5" marker-end="url(#arr-cert)"/>
+      <text x="328" y="180" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-cert)">provisions</text>
+      <text x="328" y="192" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-cert)">homelab-tls</text>
+
+      <!-- DuckDNS webhook -->
+      <rect x="470" y="210" width="170" height="70" rx="4" fill="var(--bg-pod)" stroke="var(--accent-dns)" stroke-width="1.5"/>
+      <text x="490" y="232" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-dns)" font-weight="600">DuckDNS webhook</text>
+      <text x="490" y="252" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">sets TXT record via</text>
+      <text x="490" y="268" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">DuckDNS API</text>
+      <line x1="424" y1="245" x2="466" y2="245" stroke="var(--accent-cert)" stroke-width="1.5" marker-end="url(#arr-cert)"/>
+      <text x="430" y="238" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-cert)">DNS-01</text>
+
+      <!-- Let's Encrypt -->
+      <rect x="690" y="210" width="150" height="70" rx="4" fill="var(--bg-pod)" stroke="var(--accent-le)" stroke-width="1.5"/>
+      <text x="710" y="232" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-le)" font-weight="600">Let's Encrypt</text>
+      <text x="710" y="252" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">verifies TXT record</text>
+      <text x="710" y="268" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">issues certificate</text>
+      <line x1="640" y1="245" x2="686" y2="245" stroke="var(--accent-dns)" stroke-width="1.5"/>
+      <text x="646" y="238" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-dns)">verify</text>
+    </svg>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-tls)"></div> TLS / encrypted</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-cert)"></div> cert-manager</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-dns)"></div> DNS challenge</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-le)"></div> Let's Encrypt</div>
+  </div>
+  <p class="note">TLS terminates at the NGINX data plane pod. Traffic between NGINX and backend services stays plain HTTP inside the cluster network. The certificate is stored as a K8s Secret (<code>homelab-tls</code>) and auto-renewed by cert-manager before expiry.</p>
+</section>
+
+<!-- SECTION: DNS-01 Challenge flow -->
+<section>
+  <h2 id="acme-how-the-certificate-gets-issued"><span class="label">ACME</span> How the certificate gets issued</h2>
+  <p style="font-size:0.88rem; margin-bottom:1rem;">The DNS-01 challenge proves domain ownership without opening any inbound ports — critical for a homelab behind NAT. The entire flow is outbound from your cluster.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 860 440" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr2-cert" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-cert)"/>
+        </marker>
+        <marker id="arr2-dns" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-dns)"/>
+        </marker>
+        <marker id="arr2-le" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-le)"/>
+        </marker>
+        <marker id="arr2-tls" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-tls)"/>
+        </marker>
+      </defs>
+
+      <!-- Your K8s cluster box -->
+      <rect x="20" y="10" width="440" height="420" rx="6" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="36" y="32" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)" font-weight="500">K8s Cluster</text>
+
+      <!-- Step 1: cert-manager sees Gateway annotation -->
+      <rect x="40" y="50" width="200" height="55" rx="4" fill="var(--bg-pod)" stroke="var(--accent-cert)" stroke-width="1.5"/>
+      <text x="56" y="70" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-cert)" font-weight="600">cert-manager</text>
+      <text x="56" y="88" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">sees annotation on</text>
+      <text x="56" y="100" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">Gateway "homelab"</text>
+
+      <rect x="270" y="50" width="170" height="55" rx="4" fill="var(--accent-cert-dim)" stroke="var(--accent-cert)" stroke-width="1"/>
+      <text x="286" y="68" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-cert)" font-weight="500">1  Creates:</text>
+      <text x="286" y="84" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--text-muted)">Certificate CR</text>
+      <text x="286" y="98" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--text-muted)">→ Order → Challenge</text>
+      <line x1="240" y1="78" x2="266" y2="78" stroke="var(--accent-cert)" stroke-width="1.5" marker-end="url(#arr2-cert)"/>
+
+      <!-- Step 2: cert-manager calls webhook -->
+      <rect x="40" y="140" width="200" height="50" rx="4" fill="var(--bg-pod)" stroke="var(--accent-dns)" stroke-width="1.5"/>
+      <text x="56" y="160" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-dns)" font-weight="600">DuckDNS webhook</text>
+      <text x="56" y="178" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">in cert-manager ns</text>
+
+      <rect x="270" y="140" width="170" height="50" rx="4" fill="var(--accent-cert-dim)" stroke="var(--accent-cert)" stroke-width="1"/>
+      <text x="286" y="158" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-cert)" font-weight="500">2  Routes DNS-01</text>
+      <text x="286" y="174" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--text-muted)">challenge to webhook</text>
+      <line x1="140" y1="105" x2="140" y2="136" stroke="var(--accent-cert)" stroke-width="1.5" marker-end="url(#arr2-cert)"/>
+
+      <!-- Step 3: webhook calls DuckDNS API -->
+      <rect x="520" y="140" width="310" height="50" rx="4" fill="var(--bg-node)" stroke="var(--accent-dns)" stroke-width="1.5"/>
+      <text x="536" y="160" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-dns)" font-weight="600">DuckDNS API</text>
+      <text x="536" y="178" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">duckdns.org/update?txt=&lt;challenge&gt;</text>
+      <line x1="440" y1="165" x2="516" y2="165" stroke="var(--accent-dns)" stroke-width="1.5" marker-end="url(#arr2-dns)"/>
+
+      <rect x="270" y="210" width="170" height="30" rx="4" fill="var(--accent-dns-dim)" stroke="var(--accent-dns)" stroke-width="1"/>
+      <text x="286" y="230" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-dns)" font-weight="500">3  Sets TXT record</text>
+
+      <!-- DNS record visualization -->
+      <rect x="520" y="210" width="310" height="50" rx="4" fill="var(--accent-dns-dim)" stroke="var(--accent-dns)" stroke-width="1"/>
+      <text x="536" y="228" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-dns)" font-weight="500">_acme-challenge.homelab.duckdns.org</text>
+      <text x="536" y="248" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">TXT "xY9z_random_challenge_token..."</text>
+      <line x1="630" y1="190" x2="630" y2="206" stroke="var(--accent-dns)" stroke-width="1.5" marker-end="url(#arr2-dns)"/>
+
+      <!-- Step 4: Let's Encrypt verifies -->
+      <rect x="520" y="290" width="310" height="55" rx="4" fill="var(--bg-node)" stroke="var(--accent-le)" stroke-width="1.5"/>
+      <text x="536" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-le)" font-weight="600">Let's Encrypt ACME</text>
+      <text x="536" y="328" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">queries DNS for TXT record</text>
+      <text x="536" y="340" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-le)">✓ match → issues certificate</text>
+      <line x1="630" y1="260" x2="630" y2="286" stroke="var(--accent-le)" stroke-width="1.5" marker-end="url(#arr2-le)"/>
+
+      <rect x="270" y="290" width="170" height="30" rx="4" fill="var(--accent-le-dim)" stroke="var(--accent-le)" stroke-width="1"/>
+      <text x="286" y="310" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-le)" font-weight="500">4  Verifies ownership</text>
+
+      <!-- Step 5: cert-manager stores cert -->
+      <rect x="40" y="290" width="200" height="55" rx="4" fill="var(--bg-pod)" stroke="var(--accent-tls)" stroke-width="1.5"/>
+      <text x="56" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-tls)" font-weight="600">K8s Secret</text>
+      <text x="56" y="328" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">name: homelab-tls</text>
+      <text x="56" y="340" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">tls.crt + tls.key</text>
+      <line x1="516" y1="315" x2="244" y2="315" stroke="var(--accent-le)" stroke-width="1.5" marker-end="url(#arr2-le)"/>
+
+      <rect x="270" y="360" width="170" height="30" rx="4" fill="var(--accent-tls-dim)" stroke="var(--accent-tls)" stroke-width="1"/>
+      <text x="286" y="380" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-tls)" font-weight="500">5  Stores cert as Secret</text>
+
+      <!-- Step 6: NGINX picks up cert -->
+      <rect x="40" y="380" width="200" height="40" rx="4" fill="var(--accent-tls-dim)" stroke="var(--accent-tls)" stroke-width="1"/>
+      <text x="56" y="404" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-tls)" font-weight="500">6  NGF reloads with new cert</text>
+    </svg>
+  </div>
+
+  <p class="note">The whole process takes 1–3 minutes. cert-manager auto-renews 30 days before expiry. No port 80 or 443 needs to be open inbound — the DuckDNS webhook calls the DuckDNS API outbound over HTTPS, and Let's Encrypt checks DNS records from its own infrastructure. The <code>dns01-recursive-nameservers</code> flag on cert-manager ensures it uses public DNS (8.8.8.8, 1.1.1.1) to verify propagation, not your local AdGuard resolver.</p>
+</section>
+
+<!-- SECTION: Why DNS-01 for homelab -->
+<section>
+  <h2 id="why-dns-01-vs-http-01"><span class="label">Why</span> DNS-01 vs HTTP-01</h2>
+  <div class="layers">
+    <div class="layer-card">
+      <h3 style="color:var(--accent-le)">DNS-01 (what we use)</h3>
+      <p>Proves domain ownership by setting a DNS TXT record. Works behind NAT, no open ports needed. Supports wildcard certs. The DuckDNS webhook automates the TXT record via the DuckDNS API.</p>
+    </div>
+    <div class="layer-card">
+      <h3 style="color:var(--text-muted)">HTTP-01 (not viable here)</h3>
+      <p>Proves ownership by serving a file on port 80. Requires the Gateway to be publicly reachable from Let's Encrypt servers. Most residential ISPs block inbound port 80, and NAT makes this unreliable. No wildcard cert support.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: Component map -->
+<section>
+  <h2 id="components-what-lives-where"><span class="label">Components</span> What lives where</h2>
+  <div class="layers" style="grid-template-columns: 1fr;">
+    <div class="layer-card">
+      <h3 style="color:var(--accent-cert)">cert-manager <span class="tag tag-cert">cert-manager ns</span></h3>
+      <p>Controller that watches for Certificate CRs and Gateway annotations. Creates ACME orders, delegates DNS-01 challenges to the webhook, and stores issued certs as K8s Secrets. Deployed via ArgoCD helm chart.</p>
+    </div>
+    <div class="layer-card">
+      <h3 style="color:var(--accent-dns)">DuckDNS webhook <span class="tag tag-dns">cert-manager ns</span></h3>
+      <p>Kubernetes API extension server that handles DNS-01 challenges for <code>*.duckdns.org</code> domains. When cert-manager needs to prove domain ownership, it calls this webhook, which calls the DuckDNS API to set the <code>_acme-challenge</code> TXT record. Reads the DuckDNS token from a K8s Secret.</p>
+    </div>
+    <div class="layer-card">
+      <h3 style="color:var(--accent-tls)">ClusterIssuer <span class="tag tag-tls">cluster-scoped</span></h3>
+      <p>Named <code>letsencrypt-prod</code>. Configures the ACME server URL, solver type (DNS-01 via DuckDNS webhook), and private key storage. Referenced by the Gateway annotation <code>cert-manager.io/cluster-issuer</code>.</p>
+    </div>
+    <div class="layer-card">
+      <h3 style="color:var(--accent-lb)">Gateway HTTPS listener <span class="tag tag-lb">default ns</span></h3>
+      <p>The <code>homelab</code> Gateway's HTTPS listener on port 443. References the <code>homelab-tls</code> Secret for the certificate. NGF provisions an NGINX data plane pod that terminates TLS using this cert and proxies to upstream services.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: Files reference -->
+<section>
+  <h2 id="gitops-file-map"><span class="label">GitOps</span> File map</h2>
+  <div class="diagram">
+    <table class="file-table">
+      <tr><th>File</th><th>Purpose</th><th>Component</th></tr>
+      <tr>
+        <td style="color:var(--text-heading)">gitops/apps/cert-manager.yaml</td>
+        <td>ArgoCD app — cert-manager helm chart</td>
+        <td><span class="tag tag-cert">cert-manager</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--text-heading)">gitops/values/cert-manager-values.yaml</td>
+        <td>Helm values — CRDs, DNS01 recursive nameservers</td>
+        <td><span class="tag tag-cert">cert-manager</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--text-heading)">gitops/apps/cert-manager-webhook-duckdns.yaml</td>
+        <td>ArgoCD app — DuckDNS webhook helm chart</td>
+        <td><span class="tag tag-dns">webhook</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--text-heading)">gitops/values/cert-manager-webhook-duckdns-values.yaml</td>
+        <td>Helm values — group name, existing secret ref</td>
+        <td><span class="tag tag-dns">webhook</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--text-heading)">gitops/manifests/letsencrypt-issuer.yaml</td>
+        <td>ClusterIssuer — ACME server + DuckDNS solver</td>
+        <td><span class="tag tag-tls">issuer</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--text-heading)">gitops/manifests/gateway/gateway.yaml</td>
+        <td>Gateway — HTTPS listener + cert-manager annotation</td>
+        <td><span class="tag tag-lb">gateway</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent-cert)">secrets/duckdns-token.txt</td>
+        <td>DuckDNS API token (gitignored)</td>
+        <td><span class="tag tag-dns">secret</span></td>
+      </tr>
+    </table>
+  </div>
+  <p class="note">Secrets are never committed. Run <code>make duckdns-token</code> to create the K8s Secret from the local file. ArgoCD syncs everything else automatically when you push.</p>
+</section>
+
+<!-- SECTION: Deploy sequence -->
+<section>
+  <h2 id="deploy-activation-sequence"><span class="label">Deploy</span> Activation sequence</h2>
+  <ol class="step-list tls">
+    <li>Run <code>make duckdns-token</code> — creates the DuckDNS API token as a K8s Secret in the <code>cert-manager</code> namespace.</li>
+    <li>Push the webhook ArgoCD app + values — ArgoCD deploys the DuckDNS webhook pod into <code>cert-manager</code> namespace.</li>
+    <li>Push the updated ClusterIssuer — cert-manager registers the DuckDNS solver. Verify with <code>kubectl get clusterissuer letsencrypt-prod</code> — should show <code>Ready: True</code>.</li>
+    <li>Push the updated Gateway with HTTPS listener — cert-manager sees the <code>cert-manager.io/cluster-issuer</code> annotation and creates a Certificate CR automatically.</li>
+    <li>cert-manager creates an ACME Order, calls the webhook, which sets the TXT record on DuckDNS. Let's Encrypt verifies and issues the cert. Takes 1–3 minutes.</li>
+    <li>The certificate is stored as Secret <code>homelab-tls</code>. NGF picks it up and the HTTPS listener goes live. Verify with <code>kubectl get certificate -n default homelab-tls</code>.</li>
+  </ol>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GPU Passthrough Stack</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #0c0e14;
+    --bg-elevated: #141722;
+    --bg-node: #1a1e2e;
+    --bg-pod: #1e2340;
+    --border: #2a2f45;
+    --border-accent: #3d4466;
+    --text: #c8cdd8;
+    --text-muted: #6b7394;
+    --text-heading: #e2e6f0;
+    --accent-gpu: #76b900;
+    --accent-gpu-dim: #1e3000;
+    --accent-node: #22c55e;
+    --accent-node-dim: #0d3a1e;
+    --accent-operator: #f59e0b;
+    --accent-operator-dim: #4a3510;
+    --accent-runtime: #5b8def;
+    --accent-runtime-dim: #2a3d6e;
+    --accent-pod: #c084fc;
+    --accent-pod-dim: #4a2d6e;
+    --accent-warn: #ef4444;
+    --accent-warn-dim: #4a1010;
+    --flow-line: #3d4466;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6fa;
+      --bg-elevated: #ffffff;
+      --bg-node: #eef0f6;
+      --bg-pod: #e4e7f2;
+      --border: #c8cdd8;
+      --border-accent: #a0a8c4;
+      --text: #2a2f45;
+      --text-muted: #6b7394;
+      --text-heading: #141722;
+      --accent-gpu: #4a7a00;
+      --accent-gpu-dim: #e8f5d0;
+      --accent-node: #16a34a;
+      --accent-node-dim: #dcfce7;
+      --accent-operator: #d97706;
+      --accent-operator-dim: #fef3c7;
+      --accent-runtime: #2d6ae0;
+      --accent-runtime-dim: #dce6fa;
+      --accent-pod: #9333ea;
+      --accent-pod-dim: #ede4fa;
+      --accent-warn: #dc2626;
+      --accent-warn-dim: #fce4e4;
+      --flow-line: #a0a8c4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6fa;
+    --bg-elevated: #ffffff;
+    --bg-node: #eef0f6;
+    --bg-pod: #e4e7f2;
+    --border: #c8cdd8;
+    --border-accent: #a0a8c4;
+    --text: #2a2f45;
+    --text-muted: #6b7394;
+    --text-heading: #141722;
+    --accent-gpu: #4a7a00;
+    --accent-gpu-dim: #e8f5d0;
+    --accent-node: #16a34a;
+    --accent-node-dim: #dcfce7;
+    --accent-operator: #d97706;
+    --accent-operator-dim: #fef3c7;
+    --accent-runtime: #2d6ae0;
+    --accent-runtime-dim: #dce6fa;
+    --accent-pod: #9333ea;
+    --accent-pod-dim: #ede4fa;
+    --accent-warn: #dc2626;
+    --accent-warn-dim: #fce4e4;
+    --flow-line: #a0a8c4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem 1.5rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 2.5rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  h2 .label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-node);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1rem 0.4rem;
+  }
+
+  h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 0.5rem;
+    margin-top: 1.5rem;
+  }
+
+  section { margin-bottom: 3rem; }
+
+  .diagram {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+
+  .diagram svg {
+    display: block;
+    margin: 0 auto;
+    width: 100%;
+    height: auto;
+  }
+
+  .note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.5;
+    margin-top: 0.75rem;
+  }
+
+  p {
+    margin-bottom: 0.75rem;
+    max-width: 65ch;
+  }
+
+  code {
+    background: var(--bg-node);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  pre {
+    background: var(--bg-node);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1rem;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 1rem;
+  }
+
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+  }
+
+  .hw-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .hw-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hw-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hw-table tr:last-child td { border-bottom: none; }
+
+  .gpu-chip {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    letter-spacing: 0.02em;
+  }
+
+  .gpu-chip.rtx3090 {
+    color: var(--accent-gpu);
+    background: var(--accent-gpu-dim);
+  }
+
+  .gpu-chip.rtx4070 {
+    color: var(--accent-runtime);
+    background: var(--accent-runtime-dim);
+  }
+
+  .gpu-chip.none {
+    color: var(--text-muted);
+    background: var(--bg-node);
+  }
+
+  .layer {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .layer-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .layer-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .layer-tag.host { color: var(--accent-gpu); background: var(--accent-gpu-dim); }
+  .layer-tag.os { color: var(--accent-node); background: var(--accent-node-dim); }
+  .layer-tag.operator { color: var(--accent-operator); background: var(--accent-operator-dim); }
+  .layer-tag.runtime { color: var(--accent-runtime); background: var(--accent-runtime-dim); }
+  .layer-tag.pod { color: var(--accent-pod); background: var(--accent-pod-dim); }
+  .layer-tag.warn { color: var(--accent-warn); background: var(--accent-warn-dim); }
+
+  .layer-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-heading);
+  }
+
+  .layer p {
+    font-size: 0.85rem;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+  }
+
+  .layer p:last-child { margin-bottom: 0; }
+
+  .connector {
+    display: flex;
+    justify-content: center;
+    padding: 0.25rem 0;
+    color: var(--flow-line);
+    font-size: 0.85rem;
+  }
+
+  .cmd-block {
+    background: var(--bg-node);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .cmd-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+  }
+
+  .cmd-block pre {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .callout {
+    border-left: 3px solid var(--accent-warn);
+    background: var(--accent-warn-dim);
+    padding: 0.75rem 1rem;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 1rem;
+  }
+
+  .callout p {
+    font-size: 0.82rem;
+    margin-bottom: 0;
+    color: var(--text);
+  }
+
+  .callout strong {
+    color: var(--text-heading);
+  }
+
+  h2[id], h3[id] { scroll-margin-top: 4.5rem; }
+</style>
+
+<style>
+  .site-return {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: .5rem;
+    padding: .7rem 1.25rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: .82rem;
+    background: color-mix(in srgb, var(--bg, #0c0e14) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border, #2a2f45);
+  }
+  .site-return a { color: var(--text-muted, var(--muted, #6b7394)); text-decoration: none; }
+  .site-return a:hover { color: var(--text-heading, var(--text, #e2e6f0)); }
+  .site-return .sep { color: var(--border, #2a2f45); }
+  .site-return .here { color: var(--text-heading, var(--text, #e2e6f0)); font-weight: 500; }
+</style>
+</head>
+<body>
+<nav class="site-return"><a href="/">whenkat.com</a><span class="sep">/</span><a href="/docs">Docs</a><span class="sep">/</span><span class="here">GPU Passthrough Stack</span></nav>
+
+
+<h1>GPU Passthrough Stack</h1>
+<p class="subtitle">Proxmox PCIe &rarr; Talos &rarr; GPU Operator &rarr; Pod</p>
+
+<!-- ─── Hardware Inventory ─── -->
+<section>
+  <h2 id="hardware-inventory-physical">Hardware Inventory <span class="label">physical</span></h2>
+  <div class="diagram">
+    <table class="hw-table">
+      <thead>
+        <tr>
+          <th>Node</th>
+          <th>GPU</th>
+          <th>VRAM</th>
+          <th>Compute</th>
+          <th>Architecture</th>
+          <th>Driver</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>k8s-cp-1</td>
+          <td><span class="gpu-chip none">none</span></td>
+          <td>&mdash;</td>
+          <td>&mdash;</td>
+          <td>&mdash;</td>
+          <td>&mdash;</td>
+        </tr>
+        <tr>
+          <td>k8s-worker-1</td>
+          <td><span class="gpu-chip rtx3090">RTX 3090</span></td>
+          <td>24 GB</td>
+          <td>8.6</td>
+          <td>Ampere</td>
+          <td>580.178.04</td>
+        </tr>
+        <tr>
+          <td>k8s-worker-2</td>
+          <td><span class="gpu-chip rtx4070">RTX 4070 Ti Super</span></td>
+          <td>16 GB</td>
+          <td>8.9</td>
+          <td>Ada Lovelace</td>
+          <td>580.178.04</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Both GPUs are PCIe-passthrough from the Proxmox host (192.168.20.10) to their respective VMs. The host has no NVIDIA userspace tools &mdash; <code>nvidia-smi</code> runs from inside the K8s nodes or pods.</p>
+</section>
+
+<!-- ─── Full Stack Diagram ─── -->
+<section>
+  <h2 id="full-stack-how-gpu-reaches-a-pod">Full Stack <span class="label">how GPU reaches a pod</span></h2>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag host">Layer 1</span>
+      <span class="layer-name">Proxmox &mdash; PCIe Passthrough</span>
+    </div>
+    <p>Each GPU is assigned to a VM via PCIe passthrough in the Proxmox VM config. The VM gets exclusive access to the physical device. IOMMU must be enabled in BIOS and Proxmox kernel args (<code>intel_iommu=on</code> or <code>amd_iommu=on</code>).</p>
+    <p class="note">Proxmox host cannot use the GPU at all &mdash; no driver, no nvidia-smi. The device is fully owned by the VM.</p>
+  </div>
+
+  <div class="connector">&darr;</div>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag os">Layer 2</span>
+      <span class="layer-name">Talos Linux &mdash; NVIDIA Extensions</span>
+    </div>
+    <p>Talos ships two system extensions that handle the driver and container toolkit at the OS level, compiled into the Talos image:</p>
+    <pre><code>extensions:
+  - nonfree-kmod-nvidia-lts    # kernel module (580.178.04)
+  - nvidia-container-toolkit-lts  # injects driver libs into containers</code></pre>
+    <p>Because Talos is immutable, you cannot <code>apt install</code> the NVIDIA driver. The extensions are baked into the Talos machine image and loaded at boot. The toolkit extension provides the <code>nvidia</code> container runtime hook.</p>
+  </div>
+
+  <div class="connector">&darr;</div>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag operator">Layer 3</span>
+      <span class="layer-name">GPU Operator &mdash; Cluster-level Management</span>
+    </div>
+    <p>The NVIDIA GPU Operator (v24.9.2) runs several components. On Talos, the <strong>driver</strong> and <strong>toolkit</strong> pods are disabled &mdash; the Talos extensions handle those. The operator still manages:</p>
+    <pre><code>driver:        enabled: false   # Talos extension handles this
+toolkit:       enabled: false   # Talos extension handles this
+devicePlugin:  enabled: true    # advertises nvidia.com/gpu to kubelet
+gfd:           enabled: true    # labels nodes with GPU metadata
+dcgmExporter:  enabled: true    # Prometheus GPU metrics
+validator:     enabled: true    # confirms GPU is functional</code></pre>
+    <p>The <strong>device plugin</strong> is the critical piece: it tells kubelet that <code>nvidia.com/gpu: 1</code> is an allocatable resource on the node. Without it, the scheduler doesn't know GPUs exist.</p>
+    <p>The <strong>GPU Feature Discovery</strong> (GFD) daemonset labels each node with detailed GPU metadata used for scheduling decisions:</p>
+    <pre><code>nvidia.com/gpu.product=NVIDIA-GeForce-RTX-3090
+nvidia.com/gpu.memory=24576
+nvidia.com/gpu.compute.major=8
+nvidia.com/gpu.family=ampere</code></pre>
+  </div>
+
+  <div class="connector">&darr;</div>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag runtime">Layer 4</span>
+      <span class="layer-name">RuntimeClass &mdash; Driver Injection</span>
+    </div>
+    <p>A <code>RuntimeClass</code> named <code>nvidia</code> tells containerd to use the nvidia runtime hook when starting the pod. This hook injects the host's driver libraries (<code>libcuda.so</code>, <code>libnvidia-ml.so</code>, <code>nvidia-smi</code>) into the container at startup.</p>
+    <pre><code>apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: nvidia
+handler: nvidia</code></pre>
+
+    <div class="callout">
+      <p><strong>Without <code>runtimeClassName: nvidia</code></strong>, the container toolkit does not inject host driver libs. The container falls back to any bundled <code>cuda-compat</code> stub &mdash; which may be a different driver version, causing <code>CUDA failure 35: driver version insufficient</code>.</p>
+    </div>
+  </div>
+
+  <div class="connector">&darr;</div>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag pod">Layer 5</span>
+      <span class="layer-name">Pod Spec &mdash; Requesting the GPU</span>
+    </div>
+    <p>A pod claims a GPU with three things in its spec:</p>
+    <pre><code>spec:
+  runtimeClassName: nvidia          # triggers driver injection
+  containers:
+    - image: ghcr.io/.../ml:v3.0.0-cuda  # CUDA-enabled image
+      resources:
+        limits:
+          nvidia.com/gpu: 1         # claims 1 GPU from device plugin</code></pre>
+    <p>The <code>nvidia.com/gpu: 1</code> limit does double duty: it requests the GPU resource <em>and</em> acts as an implicit node selector &mdash; the pod can only land on a node where the device plugin advertises a free GPU.</p>
+    <p class="note">GPUs are exclusive &mdash; each <code>nvidia.com/gpu: 1</code> claim takes the entire device. Two pods requesting 1 GPU each need two physical GPUs (or two nodes with one GPU each).</p>
+  </div>
+</section>
+
+<!-- ─── This Cluster's Config ─── -->
+<section>
+  <h2 id="this-cluster-immich-ml-example">This Cluster <span class="label">immich ML example</span></h2>
+  <p>The Immich machine learning pod runs face detection, CLIP search, and OCR on whichever worker has a free GPU:</p>
+
+  <pre><code># gitops/values/immich-values.yaml
+machine-learning:
+  controllers:
+    main:
+      strategy: Recreate        # RWO PVC can't multi-attach
+      pod:
+        runtimeClassName: nvidia
+      containers:
+        main:
+          image:
+            tag: "v3.0.0-cuda"
+          resources:
+            limits:
+              nvidia.com/gpu: 1</code></pre>
+
+  <h3>Why <code>strategy: Recreate</code>?</h3>
+  <p>The ML pod uses a <code>ReadWriteOnce</code> PVC for its model cache. With the default <code>RollingUpdate</code> strategy, Kubernetes tries to start the new pod before killing the old one. The PVC can't attach to two nodes simultaneously, creating a deadlock. <code>Recreate</code> kills old, then starts new.</p>
+
+  <h3>Targeting a specific GPU</h3>
+  <p>If you need to pin a workload to a specific card (e.g. RTX 3090 for its 24 GB VRAM), use a <code>nodeSelector</code> with GFD labels:</p>
+  <pre><code>spec:
+  nodeSelector:
+    nvidia.com/gpu.product: NVIDIA-GeForce-RTX-3090</code></pre>
+</section>
+
+<!-- ─── Verification ─── -->
+<section>
+  <h2 id="verification-commands-debug">Verification Commands <span class="label">debug</span></h2>
+
+  <div class="cmd-block">
+    <div class="cmd-label">Check GPU resources per node</div>
+    <pre><code>kubectl get nodes -o custom-columns=\
+'NAME:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu'</code></pre>
+  </div>
+
+  <div class="cmd-block">
+    <div class="cmd-label">Check GPU metadata labels</div>
+    <pre><code>kubectl get node k8s-worker-1 -o json | \
+  jq '.metadata.labels | with_entries(select(.key | startswith("nvidia")))'</code></pre>
+  </div>
+
+  <div class="cmd-block">
+    <div class="cmd-label">nvidia-smi from inside a GPU pod</div>
+    <pre><code>kubectl -n immich exec deploy/immich-machine-learning -- nvidia-smi</code></pre>
+  </div>
+
+  <div class="cmd-block">
+    <div class="cmd-label">Watch GPU utilization live</div>
+    <pre><code>watch -n 1 'kubectl -n immich exec deploy/immich-machine-learning -- nvidia-smi'</code></pre>
+  </div>
+
+  <div class="cmd-block">
+    <div class="cmd-label">Verify CUDA providers in ONNX Runtime</div>
+    <pre><code>kubectl -n immich exec deploy/immich-machine-learning -- \
+  python3 -c "import onnxruntime as ort; print(ort.get_available_providers())"
+# Expect: ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']</code></pre>
+  </div>
+
+  <div class="cmd-block">
+    <div class="cmd-label">Check if driver libs were injected (RuntimeClass working)</div>
+    <pre><code>kubectl -n immich exec deploy/immich-machine-learning -- \
+  ls /usr/local/nvidia/lib64/libcuda.so* 2>/dev/null && echo "injected" || echo "missing"</code></pre>
+  </div>
+</section>
+
+<!-- ─── Gotchas ─── -->
+<section>
+  <h2 id="gotchas-learned-the-hard-way">Gotchas <span class="label">learned the hard way</span></h2>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag warn">trap</span>
+      <span class="layer-name">CUDA driver version insufficient (failure 35)</span>
+    </div>
+    <p>If you see <code>CUDA failure 35</code>, the container is using a bundled <code>cuda-compat</code> stub instead of the host driver. Fix: add <code>runtimeClassName: nvidia</code> to the pod spec. The Talos container toolkit only injects host libs when this runtime is specified.</p>
+  </div>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag warn">trap</span>
+      <span class="layer-name">No nvidia-smi on Proxmox host</span>
+    </div>
+    <p>The Proxmox host has no NVIDIA userspace &mdash; GPUs are fully passed through to VMs. Run <code>nvidia-smi</code> from inside a GPU pod, not on the Proxmox shell.</p>
+  </div>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag warn">trap</span>
+      <span class="layer-name">RWO PVC deadlock on rolling update</span>
+    </div>
+    <p>A <code>ReadWriteOnce</code> volume can only attach to one node. If the new pod schedules to a different node than the old one, the volume can't attach and the rollout deadlocks. Use <code>strategy: Recreate</code> for any deployment with RWO PVCs.</p>
+  </div>
+
+  <div class="layer">
+    <div class="layer-header">
+      <span class="layer-tag warn">trap</span>
+      <span class="layer-name">GPU Operator driver/toolkit disabled on Talos</span>
+    </div>
+    <p>Talos uses system extensions for the NVIDIA driver and container toolkit. The GPU Operator's <code>driver</code> and <code>toolkit</code> fields must be <code>enabled: false</code> in the <code>ClusterPolicy</code>. The operator still manages the device plugin, GFD, and validators.</p>
+  </div>
+</section>
+
+</body>
+</html>

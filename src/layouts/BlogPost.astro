@@ -1,0 +1,24 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import Comments from '../components/Comments.astro';
+import PostLayout from '../whenkat/layouts/PostLayout.astro';
+import { dateLabel } from '../whenkat/lib/posts';
+
+type Props = CollectionEntry<'blog'>['data'] & {
+  prev?: { id: string; title: string };
+  next?: { id: string; title: string };
+};
+const { title, description, pubDate, updatedDate, heroImage, series, prev, next } = Astro.props;
+const neighbor = (post: Props['prev']) => post && ({
+  title: post.title, href: `/blog/${post.id}/`,
+});
+---
+<PostLayout title={title} description={description} date={pubDate} socialImage={heroImage?.src}
+  series={series} previous={neighbor(prev)} next={neighbor(next)}>
+  {updatedDate && <meta slot="head" property="article:modified_time" content={updatedDate.toISOString()} />}
+  {updatedDate && <p class="mono">Last updated on {dateLabel(updatedDate)}</p>}
+  {heroImage && <Image width={1020} height={510} src={heroImage} alt="" />}
+  <slot />
+  <Comments slot="comments" />
+</PostLayout>

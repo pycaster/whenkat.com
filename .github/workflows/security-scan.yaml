@@ -1,0 +1,46 @@
+name: Security scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 8 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  filesystem:
+    name: Filesystem vulnerabilities
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+
+  blog-image:
+    name: Blog container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build blog image
+        run: docker build -t blog:scan .
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: blog:scan
+          format: table
+          exit-code: "1"
+          severity: CRITICAL,HIGH

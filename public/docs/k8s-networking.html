@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K8s Cluster Network Topology</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0c0e14;
+    --bg-elevated: #141722;
+    --bg-node: #1a1e2e;
+    --bg-pod: #1e2340;
+    --border: #2a2f45;
+    --border-accent: #3d4466;
+    --text: #c8cdd8;
+    --text-muted: #6b7394;
+    --text-heading: #e2e6f0;
+    --accent-dns: #5b8def;
+    --accent-dns-dim: #2a3d6e;
+    --accent-svc: #c084fc;
+    --accent-svc-dim: #4a2d6e;
+    --accent-cilium: #f59e0b;
+    --accent-cilium-dim: #4a3510;
+    --accent-node: #22c55e;
+    --accent-node-dim: #0d3a1e;
+    --accent-lb: #f472b6;
+    --accent-lb-dim: #4a1535;
+    --flow-line: #3d4466;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6fa;
+      --bg-elevated: #ffffff;
+      --bg-node: #eef0f6;
+      --bg-pod: #e4e7f2;
+      --border: #c8cdd8;
+      --border-accent: #a0a8c4;
+      --text: #2a2f45;
+      --text-muted: #6b7394;
+      --text-heading: #141722;
+      --accent-dns: #2d6ae0;
+      --accent-dns-dim: #dce6fa;
+      --accent-svc: #9333ea;
+      --accent-svc-dim: #ede4fa;
+      --accent-cilium: #d97706;
+      --accent-cilium-dim: #fef3c7;
+      --accent-node: #16a34a;
+      --accent-node-dim: #dcfce7;
+      --accent-lb: #db2777;
+      --accent-lb-dim: #fce7f3;
+      --flow-line: #a0a8c4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6fa;
+    --bg-elevated: #ffffff;
+    --bg-node: #eef0f6;
+    --bg-pod: #e4e7f2;
+    --border: #c8cdd8;
+    --border-accent: #a0a8c4;
+    --text: #2a2f45;
+    --text-muted: #6b7394;
+    --text-heading: #141722;
+    --accent-dns: #2d6ae0;
+    --accent-dns-dim: #dce6fa;
+    --accent-svc: #9333ea;
+    --accent-svc-dim: #ede4fa;
+    --accent-cilium: #d97706;
+    --accent-cilium-dim: #fef3c7;
+    --accent-node: #16a34a;
+    --accent-node-dim: #dcfce7;
+    --accent-lb: #db2777;
+    --accent-lb-dim: #fce7f3;
+    --flow-line: #a0a8c4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 2rem 1.5rem;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 2.5rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  h2 .label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-node);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.1rem 0.4rem;
+  }
+
+  section { margin-bottom: 3rem; }
+
+  .diagram {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.5rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+  }
+
+  .diagram svg {
+    display: block;
+    margin: 0 auto;
+    width: 100%;
+    height: auto;
+  }
+
+  .note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.5;
+    margin-top: 0.75rem;
+  }
+
+  code {
+    background: var(--bg-node);
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .ip-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .ip-table th {
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ip-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ip-table tr:last-child td { border-bottom: none; }
+
+  .tag {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    font-weight: 500;
+  }
+
+  .tag-dns { background: var(--accent-dns-dim); color: var(--accent-dns); }
+  .tag-svc { background: var(--accent-svc-dim); color: var(--accent-svc); }
+  .tag-cilium { background: var(--accent-cilium-dim); color: var(--accent-cilium); }
+  .tag-node { background: var(--accent-node-dim); color: var(--accent-node); }
+  .tag-lb { background: var(--accent-lb-dim); color: var(--accent-lb); }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+    font-size: 0.78rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--text-muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .flow-desc {
+    font-size: 0.88rem;
+    line-height: 1.65;
+    margin-bottom: 0.5rem;
+  }
+
+  .flow-desc:last-child { margin-bottom: 0; }
+
+  .layers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  .layer-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+  }
+
+  .layer-card h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .layer-card p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 1.25rem 1rem; }
+    h1 { font-size: 1.25rem; }
+    .diagram { padding: 1rem; }
+    .layers { grid-template-columns: 1fr; }
+  }
+
+  h2[id], h3[id] { scroll-margin-top: 4.5rem; }
+</style>
+
+<style>
+  .site-return {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: .5rem;
+    padding: .7rem 1.25rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: .82rem;
+    background: color-mix(in srgb, var(--bg, #0c0e14) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border, #2a2f45);
+  }
+  .site-return a { color: var(--text-muted, var(--muted, #6b7394)); text-decoration: none; }
+  .site-return a:hover { color: var(--text-heading, var(--text, #e2e6f0)); }
+  .site-return .sep { color: var(--border, #2a2f45); }
+  .site-return .here { color: var(--text-heading, var(--text, #e2e6f0)); font-weight: 500; }
+</style>
+</head>
+<body>
+<nav class="site-return"><a href="/">whenkat.com</a><span class="sep">/</span><a href="/docs">Docs</a><span class="sep">/</span><span class="here">K8s Cluster Network Topology</span></nav>
+
+
+<h1>K8s Cluster Network Topology</h1>
+<p class="subtitle">proxmox-k8s · Talos + Cilium on 192.168.20.0/24</p>
+
+<!-- SECTION: Physical + Node topology -->
+<section>
+  <h2 id="lan-physical-topology"><span class="label">LAN</span> Physical topology</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 860 340" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-node" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-node)"/>
+        </marker>
+        <marker id="arr-muted" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--flow-line)"/>
+        </marker>
+        <marker id="arr-lb" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-lb)"/>
+        </marker>
+      </defs>
+
+      <!-- LAN backbone -->
+      <line x1="60" y1="170" x2="800" y2="170" stroke="var(--accent-node)" stroke-width="2"/>
+      <text x="60" y="162" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-node)" font-weight="500">192.168.20.0/24</text>
+
+      <!-- Gateway -->
+      <rect x="60" y="20" width="120" height="50" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1"/>
+      <text x="80" y="42" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-heading)" font-weight="600">Gateway</text>
+      <text x="80" y="58" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">.1</text>
+      <line x1="120" y1="70" x2="120" y2="168" stroke="var(--flow-line)" stroke-width="1"/>
+
+      <!-- AdGuard -->
+      <rect x="60" y="200" width="120" height="50" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1"/>
+      <text x="80" y="222" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-heading)" font-weight="600">AdGuard DNS</text>
+      <text x="80" y="238" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">.2 (LXC)</text>
+      <line x1="120" y1="200" x2="120" y2="172" stroke="var(--flow-line)" stroke-width="1"/>
+
+      <!-- Proxmox host -->
+      <rect x="230" y="20" width="120" height="50" rx="4" fill="var(--bg-node)" stroke="var(--accent-cilium)" stroke-width="1.5"/>
+      <text x="250" y="42" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-cilium)" font-weight="600">Proxmox</text>
+      <text x="250" y="58" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">.45 (host)</text>
+      <line x1="290" y1="70" x2="290" y2="168" stroke="var(--flow-line)" stroke-width="1"/>
+
+      <!-- CP node -->
+      <rect x="400" y="20" width="130" height="70" rx="4" fill="var(--bg-pod)" stroke="var(--accent-node)" stroke-width="1.5"/>
+      <text x="420" y="42" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-node)" font-weight="600">k8s-cp-1</text>
+      <text x="420" y="58" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">.50 (VM 800)</text>
+      <text x="420" y="78" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--text-muted)">4 CPU · 8G RAM</text>
+      <line x1="465" y1="90" x2="465" y2="168" stroke="var(--accent-node)" stroke-width="1.5"/>
+
+      <!-- Worker 1 -->
+      <rect x="570" y="20" width="130" height="70" rx="4" fill="var(--bg-pod)" stroke="var(--accent-node)" stroke-width="1.5"/>
+      <text x="590" y="42" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-node)" font-weight="600">k8s-worker-1</text>
+      <text x="590" y="58" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">.51 (VM 801)</text>
+      <text x="590" y="78" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-cilium)">RTX 3090 24G</text>
+      <line x1="635" y1="90" x2="635" y2="168" stroke="var(--accent-node)" stroke-width="1.5"/>
+
+      <!-- Worker 2 -->
+      <rect x="730" y="20" width="130" height="70" rx="4" fill="var(--bg-pod)" stroke="var(--accent-node)" stroke-width="1.5"/>
+      <text x="746" y="42" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-node)" font-weight="600">k8s-worker-2</text>
+      <text x="746" y="58" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">.52 (VM 802)</text>
+      <text x="746" y="78" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-cilium)">RTX 4070 16G</text>
+      <line x1="795" y1="90" x2="795" y2="168" stroke="var(--accent-node)" stroke-width="1.5"/>
+
+      <!-- LB pool -->
+      <rect x="400" y="200" width="460" height="45" rx="4" fill="var(--accent-lb-dim)" stroke="var(--accent-lb)" stroke-width="1" stroke-dasharray="4,2"/>
+      <text x="420" y="220" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-lb)" font-weight="600">Cilium L2 LoadBalancer Pool</text>
+      <text x="420" y="236" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">192.168.20.60 – 80 · ARP announced on LAN by worker nodes</text>
+      <line x1="630" y1="200" x2="630" y2="172" stroke="var(--accent-lb)" stroke-width="1" stroke-dasharray="4,2"/>
+
+      <!-- VXLAN tunnels between nodes -->
+      <path d="M 465 96 Q 550 120 635 96" fill="none" stroke="var(--accent-cilium)" stroke-width="1" stroke-dasharray="3,2"/>
+      <path d="M 635 96 Q 715 120 795 96" fill="none" stroke="var(--accent-cilium)" stroke-width="1" stroke-dasharray="3,2"/>
+      <path d="M 465 96 Q 630 130 795 96" fill="none" stroke="var(--accent-cilium)" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="580" y="130" font-family="JetBrains Mono, monospace" font-size="7.5" fill="var(--accent-cilium)">VXLAN tunnels (Cilium)</text>
+
+      <!-- External traffic label -->
+      <rect x="230" y="270" width="200" height="50" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1"/>
+      <text x="250" y="292" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">External traffic →</text>
+      <text x="250" y="308" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">e.g. browser → .60 (ArgoCD)</text>
+      <line x1="430" y1="295" x2="470" y2="247" stroke="var(--accent-lb)" stroke-width="1" marker-end="url(#arr-lb)"/>
+    </svg>
+  </div>
+  <p class="note">All VMs run on a single Proxmox host (pve). Each K8s node VM gets a static IP on the LAN via cloud-init. GPUs are passed through via VFIO-PCI.</p>
+</section>
+
+<!-- SECTION: IP address map -->
+<section>
+  <h2 id="ips-address-allocation"><span class="label">IPs</span> Address allocation</h2>
+  <div class="diagram">
+    <table class="ip-table">
+      <tr><th>IP / Range</th><th>Assignment</th><th>Managed by</th></tr>
+      <tr>
+        <td style="color:var(--text-heading)">192.168.20.1</td>
+        <td>Gateway / router</td>
+        <td><span class="tag tag-node">static</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--text-heading)">192.168.20.2</td>
+        <td>AdGuard Home DNS (Proxmox LXC)</td>
+        <td><span class="tag tag-cilium">OpenTofu</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--text-heading)">192.168.20.10</td>
+        <td>Proxmox VE host (pve)</td>
+        <td><span class="tag tag-node">static</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent-node)">192.168.20.50</td>
+        <td>k8s-cp-1 — control plane</td>
+        <td><span class="tag tag-cilium">OpenTofu</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent-node)">192.168.20.51</td>
+        <td>k8s-worker-1 — RTX 3090 (LLM inference)</td>
+        <td><span class="tag tag-cilium">OpenTofu</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent-node)">192.168.20.52</td>
+        <td>k8s-worker-2 — RTX 4070 (Immich / ML)</td>
+        <td><span class="tag tag-cilium">OpenTofu</span></td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent-lb)">192.168.20.60 – 80</td>
+        <td>Cilium L2 LoadBalancer pool</td>
+        <td><span class="tag tag-lb">Cilium</span></td>
+      </tr>
+    </table>
+  </div>
+  <p class="note">Node IPs are set via Proxmox cloud-init. LB IPs are virtual — Cilium responds to ARP on behalf of worker nodes, so external clients reach Services at those IPs on the LAN.</p>
+</section>
+
+<!-- SECTION: Three internal IP spaces -->
+<section>
+  <h2 id="k8s-internal-ip-spaces"><span class="label">K8s</span> Internal IP spaces</h2>
+  <div class="diagram">
+    <table class="ip-table">
+      <tr><th>CIDR</th><th>Purpose</th><th>Assigned by</th><th>Example</th></tr>
+      <tr>
+        <td style="color:var(--accent-cilium)">10.244.0.0/16</td>
+        <td>Pod IPs — every pod gets a unique IP</td>
+        <td><span class="tag tag-cilium">Cilium</span></td>
+        <td>10.244.1.15 (an ArgoCD pod)</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent-svc)">10.96.0.0/12</td>
+        <td>Service ClusterIPs — stable virtual IPs for services</td>
+        <td><span class="tag tag-svc">kube-api</span></td>
+        <td>10.96.0.10 (CoreDNS)</td>
+      </tr>
+      <tr>
+        <td style="color:var(--accent-node)">192.168.20.50-52</td>
+        <td>Node IPs — used by kubelet, Cilium tunnels</td>
+        <td><span class="tag tag-node">cloud-init</span></td>
+        <td>192.168.20.51 (worker-1)</td>
+      </tr>
+    </table>
+  </div>
+  <p class="note">Pod and Service IPs are virtual — they exist only inside the cluster. Cilium's eBPF programs route packets between all three spaces. Node IPs must be unique LAN addresses for VXLAN tunnels to work.</p>
+</section>
+
+<!-- SECTION: Service discovery flow -->
+<section>
+  <h2 id="dns-how-pods-find-each-other"><span class="label">DNS</span> How pods find each other</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 860 380" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-dns" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-dns)"/>
+        </marker>
+        <marker id="arr-svc" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-svc)"/>
+        </marker>
+        <marker id="arr-cil" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-cilium)"/>
+        </marker>
+      </defs>
+
+      <!-- Source pod -->
+      <rect x="40" y="30" width="200" height="70" rx="4" fill="var(--bg-pod)" stroke="var(--border-accent)" stroke-width="1"/>
+      <text x="60" y="55" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-heading)" font-weight="600">Any Pod</text>
+      <text x="60" y="72" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">nameserver: 10.96.0.10</text>
+      <text x="60" y="88" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">search: svc.cluster.local</text>
+
+      <!-- Step 1 -->
+      <rect x="320" y="20" width="220" height="30" rx="4" fill="var(--accent-dns-dim)" stroke="var(--accent-dns)" stroke-width="1"/>
+      <text x="336" y="40" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-dns)" font-weight="500">1  DNS query → 10.96.0.10</text>
+      <line x1="240" y1="55" x2="316" y2="38" stroke="var(--accent-dns)" stroke-width="1.5" marker-end="url(#arr-dns)"/>
+
+      <!-- CoreDNS -->
+      <rect x="610" y="20" width="210" height="80" rx="4" fill="var(--bg-pod)" stroke="var(--accent-dns)" stroke-width="1.5"/>
+      <text x="630" y="45" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent-dns)" font-weight="700">CoreDNS</text>
+      <text x="630" y="62" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">pod: 10.244.0.8</text>
+      <text x="630" y="78" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">svc: 10.96.0.10 (kube-dns)</text>
+      <text x="630" y="92" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--text-muted)">watches kube-api for endpoints</text>
+      <line x1="540" y1="35" x2="606" y2="45" stroke="var(--accent-dns)" stroke-width="1.5" marker-end="url(#arr-dns)"/>
+
+      <!-- Step 2: reply -->
+      <rect x="320" y="80" width="220" height="30" rx="4" fill="var(--accent-dns-dim)" stroke="var(--accent-dns)" stroke-width="1"/>
+      <text x="336" y="100" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-dns)" font-weight="500">2  Reply → ClusterIP</text>
+      <line x1="608" y1="82" x2="544" y2="92" stroke="var(--accent-dns)" stroke-width="1.5" marker-end="url(#arr-dns)"/>
+      <line x1="320" y1="98" x2="244" y2="88" stroke="var(--accent-dns)" stroke-width="1.5" marker-end="url(#arr-dns)"/>
+
+      <!-- Service box -->
+      <rect x="40" y="140" width="280" height="55" rx="4" fill="var(--bg-elevated)" stroke="var(--accent-svc)" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="60" y="162" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-svc)" font-weight="600">Service (ClusterIP)</text>
+      <text x="60" y="182" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">virtual IP — no interface, no process</text>
+
+      <!-- Step 3 -->
+      <rect x="320" y="145" width="220" height="30" rx="4" fill="var(--accent-svc-dim)" stroke="var(--accent-svc)" stroke-width="1"/>
+      <text x="336" y="165" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-svc)" font-weight="500">3  Connect to ClusterIP</text>
+      <line x1="140" y1="100" x2="140" y2="136" stroke="var(--accent-svc)" stroke-width="1.5" marker-end="url(#arr-svc)"/>
+
+      <!-- Cilium eBPF -->
+      <rect x="40" y="225" width="280" height="50" rx="4" fill="var(--accent-cilium-dim)" stroke="var(--accent-cilium)" stroke-width="1.5"/>
+      <text x="60" y="248" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent-cilium)" font-weight="700">Cilium eBPF</text>
+      <text x="60" y="265" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">DNAT: ClusterIP → real pod IP</text>
+
+      <!-- Step 4 -->
+      <rect x="320" y="230" width="220" height="30" rx="4" fill="var(--accent-cilium-dim)" stroke="var(--accent-cilium)" stroke-width="1"/>
+      <text x="336" y="250" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-cilium)" font-weight="500">4  Rewrite dst to pod IP</text>
+      <line x1="180" y1="195" x2="180" y2="221" stroke="var(--accent-cilium)" stroke-width="1.5" marker-end="url(#arr-cil)"/>
+
+      <!-- Target pod -->
+      <rect x="610" y="210" width="210" height="65" rx="4" fill="var(--bg-pod)" stroke="var(--accent-node)" stroke-width="1.5"/>
+      <text x="630" y="235" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-node)" font-weight="600">Target Pod</text>
+      <text x="630" y="252" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">pod IP: 10.244.x.y</text>
+      <text x="630" y="265" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">may be on a different node</text>
+
+      <!-- Step 5 -->
+      <rect x="320" y="300" width="220" height="30" rx="4" fill="var(--accent-cilium-dim)" stroke="var(--accent-cilium)" stroke-width="1"/>
+      <text x="336" y="320" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-cilium)" font-weight="500">5  VXLAN encap if cross-node</text>
+      <path d="M 320 250 Q 420 290 610 245" fill="none" stroke="var(--accent-cilium)" stroke-width="1.5" marker-end="url(#arr-cil)"/>
+
+      <!-- VXLAN note -->
+      <rect x="420" y="340" width="400" height="30" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1"/>
+      <text x="440" y="360" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">VXLAN tunnel uses node IPs (192.168.20.50↔51↔52)</text>
+    </svg>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-dns)"></div> DNS resolution</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-svc)"></div> Service (virtual IP)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-cilium)"></div> Cilium eBPF + VXLAN</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent-node)"></div> Target pod</div>
+  </div>
+  <p class="note">Kubelet injects <code>nameserver 10.96.0.10</code> into every pod's <code>/etc/resolv.conf</code>. CoreDNS watches the kube-api for Service/Endpoint changes and serves <code>name.namespace.svc.cluster.local → ClusterIP</code> records. Cilium replaces kube-proxy entirely — Service routing is done in eBPF, not iptables.</p>
+</section>
+
+<!-- SECTION: External access via LoadBalancer -->
+<section>
+  <h2 id="l2-external-access-loadbalancer"><span class="label">L2</span> External access (LoadBalancer)</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 860 200" xmlns="http://www.w3.org/2000/svg">
+      <!-- Browser -->
+      <rect x="40" y="70" width="150" height="55" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1"/>
+      <text x="60" y="95" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-heading)" font-weight="600">Browser / client</text>
+      <text x="60" y="112" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">on your LAN</text>
+
+      <!-- ARP -->
+      <rect x="240" y="30" width="170" height="30" rx="4" fill="var(--accent-lb-dim)" stroke="var(--accent-lb)" stroke-width="1"/>
+      <text x="256" y="50" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-lb)" font-weight="500">ARP: who has .60?</text>
+      <line x1="190" y1="82" x2="236" y2="50" stroke="var(--accent-lb)" stroke-width="1.5" marker-end="url(#arr-lb)"/>
+
+      <!-- Cilium L2 responder -->
+      <rect x="460" y="20" width="220" height="55" rx="4" fill="var(--accent-cilium-dim)" stroke="var(--accent-cilium)" stroke-width="1.5"/>
+      <text x="480" y="42" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-cilium)" font-weight="600">Cilium L2 Announcer</text>
+      <text x="480" y="60" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">responds with worker MAC</text>
+      <line x1="410" y1="45" x2="456" y2="45" stroke="var(--accent-lb)" stroke-width="1.5" marker-end="url(#arr-lb)"/>
+
+      <!-- Traffic flow -->
+      <line x1="190" y1="100" x2="456" y2="120" stroke="var(--accent-lb)" stroke-width="1.5" marker-end="url(#arr-lb)"/>
+      <text x="275" y="118" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-lb)">TCP to 192.168.20.60:80</text>
+
+      <!-- Service -->
+      <rect x="460" y="95" width="220" height="45" rx="4" fill="var(--bg-elevated)" stroke="var(--accent-svc)" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <text x="480" y="115" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-svc)" font-weight="500">Service type: LoadBalancer</text>
+      <text x="480" y="132" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">externalIP: 192.168.20.60</text>
+
+      <!-- Pod -->
+      <rect x="720" y="95" width="120" height="45" rx="4" fill="var(--bg-pod)" stroke="var(--accent-node)" stroke-width="1.5"/>
+      <text x="736" y="115" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-node)" font-weight="600">ArgoCD</text>
+      <text x="736" y="132" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">10.244.x.y</text>
+      <line x1="680" y1="118" x2="716" y2="118" stroke="var(--accent-cilium)" stroke-width="1.5" marker-end="url(#arr-cil)"/>
+
+      <!-- Pool label -->
+      <rect x="460" y="160" width="220" height="28" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1"/>
+      <text x="480" y="179" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--text-muted)">Pool: .60–.80 (CiliumLBIPPool)</text>
+    </svg>
+  </div>
+  <p class="note">Cilium L2 Announcements replace MetalLB. When a <code>type: LoadBalancer</code> Service is created, Cilium assigns an IP from the pool and responds to ARP on the LAN. External clients reach the Service at that IP without any router config.</p>
+</section>
+
+<!-- SECTION: Gateway API L7 routing -->
+<section>
+  <h2 id="l7-gateway-api-http-routing"><span class="label">L7</span> Gateway API — HTTP routing</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 860 420" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-gw" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-lb)"/>
+        </marker>
+        <marker id="arr-rt" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-svc)"/>
+        </marker>
+        <marker id="arr-gw-node" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-node)"/>
+        </marker>
+      </defs>
+
+      <!-- External client -->
+      <rect x="40" y="50" width="150" height="50" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1"/>
+      <text x="60" y="72" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-heading)" font-weight="600">Browser</text>
+      <text x="60" y="88" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">→ 192.168.20.60</text>
+
+      <!-- Arrow to Gateway -->
+      <line x1="190" y1="75" x2="276" y2="75" stroke="var(--accent-lb)" stroke-width="1.5" marker-end="url(#arr-gw)"/>
+      <text x="210" y="67" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-lb)">LB IP</text>
+
+      <!-- Gateway resource -->
+      <rect x="280" y="30" width="260" height="90" rx="4" fill="var(--bg-pod)" stroke="var(--accent-lb)" stroke-width="1.5"/>
+      <text x="300" y="52" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent-lb)" font-weight="700">Gateway</text>
+      <text x="390" y="52" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-muted)">homelab</text>
+      <text x="300" y="72" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">listener: HTTP :80</text>
+      <text x="300" y="88" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">allowedRoutes: All namespaces</text>
+
+      <!-- GatewayClass switch box -->
+      <rect x="300" y="103" width="220" height="24" rx="3" fill="var(--accent-cilium-dim)" stroke="var(--accent-cilium)" stroke-width="1"/>
+      <text x="312" y="119" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-cilium)" font-weight="600">gatewayClassName: nginx</text>
+      <text x="490" y="119" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--text-muted)">← switch</text>
+
+      <!-- Two GatewayClass options -->
+      <rect x="580" y="30" width="120" height="44" rx="4" fill="var(--accent-node-dim)" stroke="var(--accent-node)" stroke-width="1.5"/>
+      <text x="596" y="48" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-node)" font-weight="600">GatewayClass</text>
+      <text x="596" y="64" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-heading)" font-weight="600">nginx</text>
+      <line x1="540" y1="55" x2="576" y2="52" stroke="var(--accent-node)" stroke-width="1.5" marker-end="url(#arr-gw-node)"/>
+
+      <rect x="730" y="30" width="120" height="44" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,2"/>
+      <text x="746" y="48" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)" font-weight="500">GatewayClass</text>
+      <text x="746" y="64" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--text-muted)">cilium</text>
+
+      <!-- Controller pods -->
+      <rect x="580" y="90" width="120" height="36" rx="4" fill="var(--bg-pod)" stroke="var(--accent-node)" stroke-width="1.5"/>
+      <text x="596" y="108" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-node)" font-weight="500">NGF controller</text>
+      <text x="596" y="120" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--text-muted)">NGINX data plane</text>
+
+      <rect x="730" y="90" width="120" height="36" rx="4" fill="var(--bg-node)" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,2"/>
+      <text x="746" y="108" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">Cilium gateway</text>
+      <text x="746" y="120" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--text-muted)">Envoy data plane</text>
+
+      <!-- Active / idle labels -->
+      <text x="610" y="142" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-node)" font-weight="600">ACTIVE</text>
+      <text x="768" y="142" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--text-muted)">idle</text>
+
+      <!-- Separator -->
+      <line x1="40" y1="170" x2="860" y2="170" stroke="var(--border)" stroke-width="1" stroke-dasharray="2,4"/>
+      <text x="40" y="190" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)" font-weight="500">HTTPRoute resources define path/host → backend mapping</text>
+
+      <!-- HTTPRoute examples -->
+      <rect x="40" y="210" width="240" height="80" rx="4" fill="var(--bg-pod)" stroke="var(--accent-svc)" stroke-width="1"/>
+      <text x="60" y="232" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-svc)" font-weight="600">HTTPRoute</text>
+      <text x="60" y="250" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">host: argocd.home.lab</text>
+      <text x="60" y="266" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">parentRef: gateway/homelab</text>
+      <text x="60" y="282" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-svc)">→ argocd-server:443</text>
+
+      <rect x="310" y="210" width="240" height="80" rx="4" fill="var(--bg-pod)" stroke="var(--accent-svc)" stroke-width="1"/>
+      <text x="330" y="232" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-svc)" font-weight="600">HTTPRoute</text>
+      <text x="330" y="250" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">host: ollama.home.lab</text>
+      <text x="330" y="266" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">parentRef: gateway/homelab</text>
+      <text x="330" y="282" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-svc)">→ ollama:11434</text>
+
+      <rect x="580" y="210" width="240" height="80" rx="4" fill="var(--bg-pod)" stroke="var(--accent-svc)" stroke-width="1"/>
+      <text x="600" y="232" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-svc)" font-weight="600">HTTPRoute</text>
+      <text x="600" y="250" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">host: immich.home.lab</text>
+      <text x="600" y="266" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">parentRef: gateway/homelab</text>
+      <text x="600" y="282" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-svc)">→ immich-server:2283</text>
+
+      <!-- Arrow from Gateway to routes -->
+      <path d="M 410 125 L 410 160 L 160 160 L 160 206" fill="none" stroke="var(--accent-svc)" stroke-width="1.5" marker-end="url(#arr-rt)"/>
+      <path d="M 410 160 L 430 206" fill="none" stroke="var(--accent-svc)" stroke-width="1.5" marker-end="url(#arr-rt)"/>
+      <path d="M 410 160 L 700 160 L 700 206" fill="none" stroke="var(--accent-svc)" stroke-width="1.5" marker-end="url(#arr-rt)"/>
+
+      <!-- Backend services -->
+      <text x="40" y="320" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)" font-weight="500">Each route forwards to a backend K8s Service → Cilium routes to pods</text>
+
+      <!-- Summary box -->
+      <rect x="40" y="340" width="810" height="65" rx="4" fill="var(--bg-elevated)" stroke="var(--border)" stroke-width="1"/>
+      <text x="60" y="362" font-family="JetBrains Mono, monospace" font-size="9.5" fill="var(--text-heading)" font-weight="600">Full path (external request → pod):</text>
+      <text x="60" y="382" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">Browser → LB IP (.60) → Cilium L2 ARP → NGINX pod → HTTPRoute match → backend Service ClusterIP → Cilium eBPF DNAT → pod</text>
+      <text x="60" y="396" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-cilium)">Cilium handles L3/L4 throughout. The Gateway controller (NGINX or Envoy) only handles L7 (HTTP parsing, host/path matching, TLS).</text>
+    </svg>
+  </div>
+
+  <p class="note">Gateway API is the successor to Ingress. A single <code>Gateway</code> can serve many <code>HTTPRoute</code> resources across namespaces. The <code>gatewayClassName</code> field selects which controller (NGINX or Cilium/Envoy) handles the traffic — change it, push, and ArgoCD switches the L7 provider. Both controllers are installed; only the selected one processes the Gateway.</p>
+</section>
+
+<!-- SECTION: Component layers -->
+<section>
+  <h2 id="stack-networking-layers"><span class="label">Stack</span> Networking layers</h2>
+  <div class="layers">
+    <div class="layer-card">
+      <h3 style="color:var(--accent-cilium)">L3/L4 — Cilium</h3>
+      <p>CNI (pod networking), kube-proxy replacement (eBPF Service routing), VXLAN tunnels between nodes, L2 LoadBalancer announcements, network policy enforcement.</p>
+    </div>
+    <div class="layer-card">
+      <h3 style="color:var(--accent-dns)">DNS — CoreDNS</h3>
+      <p>Cluster DNS at <code>10.96.0.10</code>. Resolves <code>svc.cluster.local</code> names to ClusterIPs. Injected into every pod by kubelet. Forwards non-cluster queries to <code>192.168.20.2</code> (AdGuard).</p>
+    </div>
+    <div class="layer-card">
+      <h3 style="color:var(--accent-lb)">L7 — Gateway API</h3>
+      <p>Two providers installed: <strong>NGINX Gateway Fabric</strong> (default) and Cilium/Envoy. Switch via <code>gatewayClassName</code> in the Gateway resource. HTTP host/path routing, TLS termination, cross-namespace routes.</p>
+    </div>
+    <div class="layer-card">
+      <h3 style="color:var(--accent-svc)">TLS — cert-manager</h3>
+      <p>Automated Let's Encrypt certificates via DNS-01 challenge. Provisions wildcard certs for Gateway listeners.</p>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

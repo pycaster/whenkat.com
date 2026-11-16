@@ -1,0 +1,18 @@
+---
+import CoreScene from './CoreScene.astro';
+import type { Feature } from '../types';
+import { dateLabel, dateValue } from '../lib/posts';
+import { whenkat as site } from '../config';
+interface Props { feature: Feature }
+const { feature } = Astro.props;
+const { post } = feature;
+---
+<section class="feature" aria-label="Featured article">
+  <a class="feature-copy" href={post.href}>
+    <div class="mono feature-label">FIELD NOTES <span>{feature.label ?? post.series ?? 'ENGINEERING'}</span></div>
+    <h2>{feature.headline ?? post.title}</h2>
+    {(feature.description ?? post.description) && <p>{feature.description ?? post.description}</p>}
+    <div class="feature-bottom"><time class="mono" datetime={dateValue(post.date).toISOString()}>{dateLabel(post.date).toUpperCase()}</time><span class="round-arrow" aria-hidden="true">↗</span></div>
+  </a>
+  <CoreScene />
+</section>

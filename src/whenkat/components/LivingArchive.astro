@@ -1,0 +1,46 @@
+---
+import { whenkat as site } from '../config';
+import type { PostSummary } from '../types';
+import '../styles/archive.css';
+interface Props { posts: PostSummary[]; canonical?: string; socialImage?: string }
+const { posts, canonical, socialImage } = Astro.props;
+const title = 'Articles — Venkat Reddy Marepally';
+const description = 'Notes on engineering, the homelab, local AI, and whatever breaks next. Articles by Venkat Reddy Marepally.';
+const canonicalURL = canonical ?? (Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined);
+const imageURL = socialImage && Astro.site ? new URL(socialImage,Astro.site).href : socialImage;
+---
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>{title}</title><meta name="description" content={description} />
+<meta name="theme-color" content="#090c0b" /><link rel="icon" href={site.favicon} type="image/svg+xml" />
+<link rel="alternate" type="application/rss+xml" title={site.name} href={site.rss} />
+{canonicalURL && <link rel="canonical" href={canonicalURL} />}
+<meta property="og:title" content={title} /><meta property="og:description" content={description} /><meta property="og:type" content="website" />
+{canonicalURL && <meta property="og:url" content={canonicalURL} />}{imageURL && <meta property="og:image" content={imageURL} />}
+<slot name="head" />
+</head><body><a class="archive-skip" href="#main-content">Skip to journals</a>
+<div class="living-archive" data-living-archive data-index="/search-index.json">
+<div class="archive-atmosphere" aria-hidden="true"><div class="light-well"></div><div class="orbital-line orbital-one"></div><div class="orbital-line orbital-two"></div><div class="grain-field"></div></div>
+<header class="archive-header"><a class="archive-wordmark" href="/">whenkat<span>.</span></a><span class="archive-edition">A LIVING ARCHIVE <span>/</span> VOL. {String(new Date().getUTCFullYear()).slice(-3)}</span><nav aria-label="Main navigation"><a href={site.articles} aria-current="page">Articles</a><a href={site.about}>About me</a></nav></header>
+<main class="archive-main" id="main-content">
+<section class="archive-intro" aria-label="Explore the journal"><div class="archive-kicker">ENGINEERING · HOMELAB · LOCAL AI</div><h1>Follow your <em>curiosity.</em></h1><p class="archive-description">A few things I’ve built. A few things I’ve broken. Everything I’m figuring out.</p>
+<form class="archive-search" role="search"><span class="search-symbol" aria-hidden="true">⌕</span><label class="visually-hidden" for="journal-query">Search journals</label><input id="journal-query" name="q" type="search" placeholder="Search articles, topics, or tools" autocomplete="off" spellcheck="false" aria-controls="journal-space"/><button class="search-clear" type="button" aria-label="Clear search" hidden>×</button><kbd class="search-shortcut" aria-hidden="true">/</kbd></form>
+<div class="archive-prompts" aria-label="Explore a topic"><button type="button" data-query="">All journals</button><button type="button" data-query="local AI">Local AI</button><button type="button" data-query="kubernetes">Kubernetes</button><button type="button" data-query="self hosting">Self-hosting</button></div></section>
+<section class="archive-stage" aria-label="Journal archive"><div class="stage-heading"><span class="space-indicator"><span aria-hidden="true">✳</span> <span data-space-label>THE OPEN ARCHIVE</span></span><span class="result-count" role="status" aria-live="polite">{posts.length} journals to explore</span></div><div class="space-viewport"><div class="journal-space" id="journal-space">{posts.map((post,index) => <a class="journal-object" href={post.href} data-journal={index} aria-label={post.title}>
+  <div class="journal-surface">
+    <div class="object-top"><span class="object-series">{post.series ?? 'Engineering Notes'}</span><span class="object-index">{String(index+1).padStart(2,'0')}</span></div>
+    <h2>{post.title}</h2><p class="object-excerpt">{post.description ?? ''}</p>
+    <div class="object-bottom"><time datetime={new Date(post.date).toISOString()}>{new Date(post.date).getUTCFullYear()} / {String(new Date(post.date).getUTCMonth()+1).padStart(2,'0')}</time><span class="object-open">Read journal <span aria-hidden="true">↗</span></span></div>
+  </div>
+</a>)}</div><div class="archive-empty" hidden><span aria-hidden="true">∅</span><h2>A little beyond this archive.</h2><p>Try “GPU”, “networking”, or “Go”.</p><button type="button" data-reset>Show all journals</button></div></div></section>
+</main><footer class="archive-footer"><span class="archive-signature">Notes by Venkat <span> / </span> Always learning. <span> / </span> <a href={site.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a></span><div class="archive-controls"><button type="button" data-motion aria-pressed="true">Motion on</button><span class="control-divider"></span><button type="button" data-view aria-pressed="false">List view <span aria-hidden="true">☷</span></button></div><span class="archive-footnote">SEARCH TO EXPLORE. OPEN TO READ.</span></footer>
+<dialog class="archive-reader" aria-labelledby="reader-title"><div class="reader-toolbar"><button type="button" class="reader-close">← Back to the archive <kbd>esc</kbd></button><a class="reader-permalink" href="/">Open article ↗</a></div><div class="reader-scroll"><div class="reader-inner"><div class="reader-meta"></div><h1 id="reader-title"></h1><div class="reader-content prose"></div><div class="reader-end"><span>End of this journal.</span><button type="button" class="reader-close">Return to the archive ↗</button></div></div></div></dialog>
+</div>
+<script>
+  import { mountLivingArchive } from '../scripts/archive.js';
+  let cleanup: (()=>void) | undefined;
+  function mount(){ const root=document.querySelector('[data-living-archive]'); if(root) cleanup=mountLivingArchive(root) ?? cleanup; }
+  function dispose(){cleanup?.();cleanup=undefined;}
+  mount();document.addEventListener('astro:before-swap',dispose);document.addEventListener('astro:page-load',mount);
+  window.addEventListener('pagehide',e=>{if(!e.persisted)dispose();});
+</script></body></html>

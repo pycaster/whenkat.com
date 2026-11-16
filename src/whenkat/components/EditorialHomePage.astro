@@ -1,0 +1,23 @@
+---
+import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+import SiteLayout from '../layouts/SiteLayout.astro';
+import FeaturedPost from './FeaturedPost.astro';
+import Journal from './Journal.astro';
+import { whenkat as site } from '../config';
+import type { PostSummary, Feature } from '../types';
+interface Props { posts: PostSummary[]; feature?: Feature; canonical?: string; socialImage?: string }
+const { posts, feature, canonical, socialImage } = Astro.props;
+---
+<SiteLayout title={SITE_TITLE} description={SITE_DESCRIPTION} canonical={canonical} socialImage={socialImage}>
+  <slot name="head" slot="head" />
+  <main id="main-content">
+    <section class="intro">
+      <div class="eyebrow mono"><span class="cross" aria-hidden="true">✳</span> A PERSONAL LOG BY {site.author.toUpperCase()} <span class="edition">VOL. {String(new Date().getUTCFullYear()).slice(-3)} / ALWAYS LEARNING</span></div>
+      <h1>Stay curious.<br />Build <em>what’s next.</em></h1>
+      <div class="intro-bottom"><p>Engineering, local AI, and life inside a homelab.<br />Notes from figuring it out, one broken thing at a time.</p><a class="text-link mono" href="#journal">EXPLORE THE JOURNAL <span aria-hidden="true">↓</span></a></div>
+    </section>
+    {feature && <FeaturedPost feature={feature} />}
+    <Journal posts={posts} />
+    <section class="closing"><span class="mono">BEHIND THE KEYBOARD</span><p>Hey, I’m {site.author}.<br />An engineer who never<br />quite clocks out.</p><a class="text-link mono" href={site.about}>A LITTLE ABOUT ME ↗</a></section>
+  </main>
+</SiteLayout>

@@ -1,0 +1,10 @@
+---
+import SiteLayout from './SiteLayout.astro';
+import { whenkat as site } from '../config';
+interface Props { title: string; description?: string; eyebrow?: string; canonical?: string; socialImage?: string }
+const { title, description, eyebrow = 'BEHIND THE KEYBOARD', canonical, socialImage } = Astro.props;
+---
+<SiteLayout title={title} description={description} canonical={canonical} socialImage={socialImage}>
+  <slot name="head" slot="head" />
+  <main class="article-main" id="main-content"><a class="mono back" href={site.home}>← HOME</a><div class="article-heading"><span class="mono">{eyebrow}</span><h1>{title}</h1></div><article class="prose"><slot /></article></main>
+</SiteLayout>

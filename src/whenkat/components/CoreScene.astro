@@ -1,0 +1,22 @@
+---
+import { whenkat as site } from '../config';
+import '../styles/core-scene.css';
+---
+<div class="core-scene" data-core-scene>
+  <img src={site.artwork} alt="Titanium compute core with a luminous chartreuse chamber" width="1672" height="941" />
+  <canvas aria-hidden="true"></canvas>
+  <div class="core-controls">
+    <span class="mono" data-core-status>REBUILD. RETHINK. REPEAT.</span>
+    <button class="core-toggle" data-core-toggle hidden type="button">Enable 3D</button>
+  </div>
+</div>
+<script>
+  import { mountAllCoreScenes } from '../scripts/core-scene.js';
+  let cleanup: Array<(() => void) | undefined> = [];
+  function mount() { cleanup = mountAllCoreScenes(); }
+  function dispose() { cleanup.forEach(fn => fn?.()); cleanup = []; }
+  mount();
+  document.addEventListener('astro:before-swap', dispose);
+  document.addEventListener('astro:page-load', mount);
+  window.addEventListener('pagehide', event => { if (!event.persisted) dispose(); });
+</script>

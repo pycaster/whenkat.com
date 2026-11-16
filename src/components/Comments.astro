@@ -1,0 +1,43 @@
+---
+// Giscus comments, backed by GitHub Discussions on pycaster/whenkat.com.
+// is:inline keeps Astro from bundling the external script and stripping its data attributes.
+---
+
+<section class="comments">
+	<h2 class="comments-heading">Comments</h2>
+	<p class="comments-note">Sign in with GitHub to leave one. Threads live in Discussions.</p>
+
+	<script
+		is:inline
+		src="https://giscus.app/client.js"
+		data-repo="pycaster/whenkat.com"
+		data-repo-id="R_kgDOUPjJZg"
+		data-category="Comments"
+		data-category-id="DIC_kwDOUPjJZs4DE9IR"
+		data-mapping="pathname"
+		data-strict="0"
+		data-reactions-enabled="1"
+		data-emit-metadata="0"
+		data-input-position="bottom"
+		data-theme="transparent_dark"
+		data-lang="en"
+		crossorigin="anonymous"
+		async></script>
+</section>
+
+<style>
+	.comments {
+		margin-top: 3.5rem;
+		padding-top: 2rem;
+		border-top: 1px solid var(--border);
+	}
+	.comments-heading {
+		font-size: 1.2rem;
+		margin: 0 0 0.3rem 0;
+	}
+	.comments-note {
+		color: var(--text-muted);
+		font-size: 0.85rem;
+		margin: 0 0 1.5rem 0;
+	}
+</style>

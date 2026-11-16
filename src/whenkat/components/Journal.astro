@@ -1,0 +1,26 @@
+---
+import type { PostSummary } from '../types';
+import { groupPosts, dateLabel, dateValue } from '../lib/posts';
+import { whenkat as site } from '../config';
+interface Props { posts: PostSummary[] }
+const { posts } = Astro.props;
+const groups = groupPosts(posts, site.seriesOrder);
+const count = (n: number) => String(n).padStart(2, '0');
+---
+<div class="journal-title" id="journal"><h2>The journal<span>.</span></h2><span class="mono">{count(posts.length)} {posts.length === 1 ? 'ENTRY' : 'ENTRIES'} / {count(groups.length)} SERIES</span></div>
+<div class="journal-layout">
+  <aside id="series" aria-label="Browse series">
+    <div class="mono aside-label">FOLLOW A THREAD</div>
+    {groups.map(group => <a href={`#${group.id}`}><span>{group.name}</span><span class="mono">{count(group.posts.length)}</span></a>)}
+    <div class="aside-note"><span aria-hidden="true">↳</span><p>“You only truly learn when you figure it out yourself.”</p><span class="mono">THE OPERATING PRINCIPLE</span></div>
+  </aside>
+  <div class="entries">
+    {groups.map((group, index) => <section class="series-section" id={group.id}>
+      <div class="series-heading"><span class="mono">{count(index + 1)} /</span><h3>{group.name}</h3><span class="count mono">{count(group.posts.length)} {group.posts.length === 1 ? 'ENTRY' : 'ENTRIES'}</span></div>
+      {group.posts.map((post, i) => <a class="post-row" href={post.href}>
+        <span class="post-number mono">{count(i + 1)}</span><h4>{post.title}</h4><time class="mono" datetime={dateValue(post.date).toISOString()}>{dateLabel(post.date)}</time><span class="row-arrow" aria-hidden="true">↗</span>
+      </a>)}
+    </section>)}
+    {posts.length === 0 && <p>No entries published yet.</p>}
+  </div>
+</div>

@@ -1,0 +1,158 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_TITLE } from '../../consts';
+
+const docs = [
+	{
+		href: '/docs/k8s-networking.html',
+		title: 'Cluster network topology',
+		blurb:
+			'How a packet gets from the LAN to a pod. Cilium, L2 announcements, service routing in eBPF, and where CoreDNS fits.',
+		tags: ['Cilium', 'eBPF', 'Gateway API'],
+	},
+	{
+		href: '/docs/gpu-passthrough.html',
+		title: 'GPU passthrough stack',
+		blurb:
+			'VFIO on the Proxmox host through to a pod requesting a GPU, plus the gotchas that cost me the most time.',
+		tags: ['VFIO', 'Talos', 'NVIDIA'],
+	},
+	{
+		href: '/docs/https-infrastructure.html',
+		title: 'HTTPS infrastructure',
+		blurb:
+			'cert-manager, the DuckDNS webhook, and how certificates arrive without opening a single inbound port.',
+		tags: ['cert-manager', 'ACME', 'DNS01'],
+	},
+	{
+		href: '/docs/cloudflare-tunnel.html',
+		title: 'Cloudflare Tunnel',
+		blurb:
+			'Serving a public domain from a home network with no port forwarding, no static IP, and nothing listening at the edge.',
+		tags: ['Cloudflare', 'cloudflared'],
+	},
+	{
+		href: '/docs/blog-architecture.html',
+		title: 'Blog architecture',
+		blurb:
+			'What happens between a git push and this page being served. Astro, GitHub Actions, ghcr.io, and ArgoCD.',
+		tags: ['Astro', 'GitOps'],
+	},
+];
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead
+			title={`Docs — ${SITE_TITLE}`}
+			description="Reference diagrams and notes on how the homelab is actually wired. Networking, GPU passthrough, TLS, and the tunnel."
+		/>
+		<style>
+			main {
+				width: 760px;
+				max-width: calc(100% - 2em);
+				margin: auto;
+				padding: 3.5em 1em 5em;
+			}
+			.intro {
+				margin-bottom: 3rem;
+				padding-bottom: 2rem;
+				border-bottom: 1px solid var(--border);
+			}
+			.intro h1 {
+				font-size: 2rem;
+				margin: 0 0 0.6rem;
+			}
+			.intro p {
+				color: var(--text-muted);
+				margin: 0;
+				max-width: 58ch;
+				font-size: 1rem;
+			}
+			.doc-list {
+				display: flex;
+				flex-direction: column;
+				gap: 0.9rem;
+			}
+			.doc {
+				display: block;
+				padding: 1.3rem 1.5rem;
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				background: rgba(255, 255, 255, 0.02);
+				text-decoration: none;
+				transition: 0.15s ease;
+			}
+			.doc:hover {
+				border-color: var(--accent);
+				background: rgba(124, 106, 247, 0.06);
+				text-decoration: none;
+			}
+			.doc-title {
+				display: block;
+				color: #fff;
+				font-size: 1.1rem;
+				font-weight: 600;
+				margin-bottom: 0.35rem;
+			}
+			.doc:hover .doc-title {
+				color: var(--accent-hover);
+			}
+			.doc-blurb {
+				display: block;
+				color: var(--text-muted);
+				font-size: 0.9rem;
+				line-height: 1.6;
+				margin-bottom: 0.75rem;
+			}
+			.tags {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4rem;
+			}
+			.tag {
+				font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+				font-size: 0.68rem;
+				letter-spacing: 0.04em;
+				color: var(--text-muted);
+				background: rgba(255, 255, 255, 0.05);
+				border: 1px solid var(--border);
+				border-radius: 4px;
+				padding: 0.15rem 0.45rem;
+			}
+		</style>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<div class="intro">
+				<h1>Docs</h1>
+				<p>
+					The posts explain what I decided and why. These explain how it's actually wired.
+					Diagrams and reference notes for the parts of the homelab that are hard to
+					describe in prose.
+				</p>
+			</div>
+
+			<div class="doc-list">
+				{
+					docs.map((doc) => (
+						<a class="doc" href={doc.href}>
+							<span class="doc-title">{doc.title}</span>
+							<span class="doc-blurb">{doc.blurb}</span>
+							<span class="tags">
+								{doc.tags.map((t) => (
+									<span class="tag">{t}</span>
+								))}
+							</span>
+						</a>
+					))
+				}
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>

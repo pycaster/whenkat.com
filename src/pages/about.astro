@@ -1,0 +1,113 @@
+---
+import SiteLayout from '../whenkat/layouts/SiteLayout.astro';
+import { whenkat as site } from '../whenkat/config';
+---
+<SiteLayout title="About me — Venkat Reddy Marepally" description="About Venkat Reddy Marepally: engineering leadership at F5, systems, AI agents, and wireless networks." minimal>
+  <main class="about-page" id="main-content">
+    <nav class="about-nav" aria-label="Main navigation"><a href={site.home}>Home</a><a href={site.articles}>Articles</a></nav>
+    <h1>About me</h1>
+    <p>I’m Venkat, a development manager at <a href="https://www.f5.com/">F5</a> leading a team of 8 engineers building <a href="https://docs.nginx.com/nginx-one-console/">NGINX One Console</a>. I grew from software engineer to principal engineer before moving into management. I enjoy systems problems at scale and helping engineers take ownership while staying close to the technical work.</p>
+
+    <section aria-labelledby="background-heading">
+      <h2 id="background-heading">Career</h2>
+      <ol class="timeline" aria-label="Career timeline, most recent first">
+        <li class="timeline-entry">
+          <div class="timeline-date"><time datetime="2026-05">May 2026</time>–present</div>
+          <div class="timeline-content">
+            <h3>Development manager · F5</h3>
+            <p>Leading a team of 8 engineers building NGINX One Console.</p>
+          </div>
+        </li>
+        <li class="timeline-entry">
+          <div class="timeline-date"><time datetime="2014">2014</time>–<time datetime="2026-05">May 2026</time></div>
+          <div class="timeline-content">
+            <h3>Software Engineer 1 → Principal Engineer · F5</h3>
+            <p>Software engineering across multiple stacks and cloud environments.</p>
+          </div>
+        </li>
+        <li class="timeline-entry">
+          <div class="timeline-date"><time datetime="2012">2012</time></div>
+          <div class="timeline-content">
+            <h3>McAfee · an Intel company</h3>
+          </div>
+        </li>
+        <li class="timeline-entry">
+          <div class="timeline-date"><time datetime="2008">2008</time>–<time datetime="2010">2010</time></div>
+          <div class="timeline-content">
+            <h3>Tata Consultancy Services (TCS) · India</h3>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="education-heading">
+      <h2 id="education-heading">Education</h2>
+      <ol class="timeline" aria-label="Education timeline">
+        <li class="timeline-entry">
+          <div class="timeline-date"><time datetime="2010">2010</time>–<time datetime="2012">2012</time></div>
+          <div class="timeline-content">
+            <h3>University of Missouri–Kansas City</h3>
+            <p>Master of Science in electrical engineering.</p>
+            <p class="thesis-reference"><a href="https://mospace.umsystem.edu/server/api/core/bitstreams/2db3d7f4-b100-4706-8da7-60e7cf6cd7d0/content">Master’s thesis (2013)</a></p>
+          </div>
+        </li>
+        <li class="timeline-entry">
+          <div class="timeline-date"><time datetime="2004">2004</time>–<time datetime="2008">2008</time></div>
+          <div class="timeline-content">
+            <h3>Visvesvaraya Technological University · India</h3>
+            <p>Bachelor of Engineering in telecommunications engineering.</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="outside-work-heading">
+      <h2 id="outside-work-heading">Outside work</h2>
+      <ul class="outside-interests">
+        <li>Learning to serve GPU-backed workloads for my own apps.</li>
+        <li>Experimenting with agent loops for software development.</li>
+        <li>Making food and watching soccer and football.</li>
+        <li>Hiking with my kids and dog.</li>
+      </ul>
+    </section>
+
+    <nav class="about-contact" aria-label="Connect with me"><a href={site.linkedin}>LinkedIn</a><a href={site.github}>GitHub</a></nav>
+    <p class="about-disclaimer">I work at F5 on NGINX products. These are my personal views.</p>
+  </main>
+</SiteLayout>
+<style>
+  .about-page { width: min(780px, calc(100% - 48px)); margin: 0 auto; padding: 48px 0 64px; font-size: 17px; line-height: 1.8; color: #b9bcb3; overflow-wrap: anywhere; }
+  .about-nav, .about-contact { display: flex; gap: 24px; font-size: 14px; }
+  .about-nav { margin-bottom: 40px; }
+  .about-page a { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+  .about-page a:hover { color: #b9bcb3; }
+  .about-page h1 { font-size: 32px; font-weight: 550; line-height: 1.3; letter-spacing: -.025em; margin: 0 0 24px; color: var(--ink); }
+  .about-page h2 { font-size: 21px; font-weight: 550; line-height: 1.4; letter-spacing: -.015em; margin: 36px 0 14px; color: var(--ink); }
+  .about-page p { margin: 0 0 16px; }
+  .about-page .thesis-reference { font-size: 15px; }
+  .outside-interests { margin: 0; padding-left: 20px; }
+  .outside-interests li { margin: 6px 0; }
+  .timeline { --timeline-green: #8fbc9a; --timeline-line: #41664b; list-style: none; padding: 0; margin: 22px 0 0; position: relative; }
+  .timeline::before { content: ''; position: absolute; top: 10px; bottom: 22px; left: 159px; width: 1px; background: var(--timeline-line); }
+  .timeline-entry { display: grid; grid-template-columns: 140px minmax(0, 1fr); column-gap: 40px; position: relative; padding-bottom: 24px; }
+  .timeline-entry::before { content: ''; position: absolute; left: 156px; top: 9px; width: 7px; height: 7px; border-radius: 50%; background: var(--timeline-green); }
+  .timeline-date { padding-top: 2px; color: var(--timeline-green); font-size: 13px; line-height: 1.8; text-align: right; }
+  .timeline-content { min-width: 0; }
+  .timeline-content h3 { font-size: 17px; font-weight: 550; line-height: 1.6; color: var(--ink); margin: 0 0 8px; }
+  .timeline-content p:last-child { margin-bottom: 0; }
+  .timeline-entry:last-child { padding-bottom: 8px; }
+  @media (max-width: 560px) {
+    .timeline::before { left: 3px; top: 7px; bottom: 22px; }
+    .timeline-entry { grid-template-columns: minmax(0, 1fr); gap: 6px; padding-left: 24px; }
+    .timeline-entry::before { left: 0; top: 7px; }
+    .timeline-date { text-align: left; padding-top: 0; }
+  }
+
+  .about-contact { margin: 40px 0 20px; padding-top: 24px; border-top: 1px solid #30342a; }
+  .about-page .about-disclaimer { font-size: 13px; color: #a2aa96; }
+  @media (max-width: 650px) {
+    .about-page { padding-top: 32px; font-size: 16px; }
+    .about-nav { margin-bottom: 32px; }
+    .about-page h1 { font-size: 28px; }
+  }
+</style>

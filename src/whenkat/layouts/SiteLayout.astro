@@ -1,0 +1,48 @@
+---
+import FallbackImage from '../../assets/blog-placeholder-1.jpg';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { whenkat as site } from '../config';
+import '../styles/theme.css';
+interface Props {
+  title: string;
+  minimal?: boolean;
+  description?: string;
+  /** Pass the existing canonical URL if your route has custom canonical rules. */
+  canonical?: string | URL;
+  /** Pass your existing social image; no image is fabricated by this layout. */
+  socialImage?: string;
+  type?: 'website' | 'article';
+}
+const { title, minimal = false, description = site.description, canonical, socialImage = FallbackImage.src, type = 'website' } = Astro.props;
+const canonicalURL = canonical ?? (Astro.site ? new URL(Astro.url.pathname, Astro.site) : undefined);
+const origin = Astro.site ?? (canonicalURL ? new URL(canonicalURL) : undefined);
+const imageURL = socialImage && origin ? new URL(socialImage, origin).href : socialImage;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#111210" />
+    <link rel="icon" type="image/svg+xml" href={site.favicon} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="alternate" type="application/rss+xml" title={site.name} href={site.rss} />
+    {canonicalURL && <link rel="canonical" href={canonicalURL} />}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={type} />
+    {canonicalURL && <meta property="og:url" content={canonicalURL} />}
+    {imageURL && <meta property="og:image" content={imageURL} />}
+    <meta name="twitter:card" content={imageURL ? 'summary_large_image' : 'summary'} />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    {!minimal && <Header />}
+    <slot />
+    {!minimal && <Footer />}
+  </body>
+</html>

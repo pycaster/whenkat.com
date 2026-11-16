@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blog Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --bg: #0c0e14;
+    --surface: #141722;
+    --surface-hi: #1a1e2e;
+    --border: rgba(255,255,255,0.08);
+    --accent: #5b8def;
+    --accent-dim: rgba(59,130,246,0.12);
+    --purple: #7c6af7;
+    --purple-dim: rgba(124,106,247,0.1);
+    --green: #3fb950;
+    --green-dim: rgba(63,185,80,0.1);
+    --text: #e2e6f0;
+    --muted: #6b7394;
+    --code-bg: #141722;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --surface-hi: #f0f2f5;
+      --border: rgba(0,0,0,0.08);
+      --accent: #4a7bd8;
+      --accent-dim: rgba(37,99,235,0.08);
+      --purple: #6d4fd6;
+      --purple-dim: rgba(109,79,214,0.08);
+      --green: #16a34a;
+      --green-dim: rgba(22,163,74,0.08);
+      --text: #1c2128;
+      --muted: #57606a;
+      --code-bg: #f0f3f9;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0e14;
+    --surface: #141722;
+    --surface-hi: #1a1e2e;
+    --border: rgba(255,255,255,0.08);
+    --accent: #5b8def;
+    --accent-dim: rgba(59,130,246,0.12);
+    --purple: #7c6af7;
+    --purple-dim: rgba(124,106,247,0.1);
+    --green: #3fb950;
+    --green-dim: rgba(63,185,80,0.1);
+    --text: #e2e6f0;
+    --muted: #6b7394;
+    --code-bg: #141722;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .page {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    margin: 0 0 0.5rem;
+    text-wrap: balance;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    margin: 0 0 3rem;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 2.5rem 0 0.75rem;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  p { margin: 0 0 1rem; }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  .callout {
+    background: var(--accent-dim);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+  .callout strong { color: var(--accent); }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82em;
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+    overflow-x: auto;
+    margin: 1rem 0 1.5rem;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.83rem;
+    line-height: 1.65;
+  }
+
+  /* Pipeline steps */
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+  .pipeline-step {
+    background: var(--surface);
+    padding: 1.1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .pipeline-step:first-child { border-radius: 7px 0 0 7px; }
+  .pipeline-step:last-child { border-radius: 0 7px 7px 0; }
+  .step-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .step-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .step-detail {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  /* Layer stack */
+  .layers { display: flex; flex-direction: column; gap: 0; margin: 1.5rem 0; }
+  .layer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    font-size: 0.88rem;
+  }
+  .layer:first-child { border-radius: 8px 8px 0 0; }
+  .layer:last-child { border-bottom: 1px solid var(--border); border-radius: 0 0 8px 8px; }
+  .layer-icon {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+    min-width: 80px;
+    text-align: center;
+  }
+  .layer-icon.blue { background: var(--accent-dim); color: var(--accent); }
+  .layer-icon.purple { background: var(--purple-dim); color: var(--purple); }
+  .layer-icon.green { background: var(--green-dim); color: var(--green); }
+  .layer-name { font-weight: 600; color: var(--text); min-width: 130px; }
+  .layer-desc { color: var(--muted); font-size: 0.83rem; }
+
+  /* Writing guide */
+  .frontmatter {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 1rem 0 1.5rem;
+  }
+  .frontmatter-bar {
+    background: var(--surface);
+    padding: 0.4rem 1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .frontmatter pre {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  h2[id], h3[id] { scroll-margin-top: 4.5rem; }
+</style>
+
+<style>
+  .site-return {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: .5rem;
+    padding: .7rem 1.25rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: .82rem;
+    background: color-mix(in srgb, var(--bg, #0c0e14) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border, #2a2f45);
+  }
+  .site-return a { color: var(--text-muted, var(--muted, #6b7394)); text-decoration: none; }
+  .site-return a:hover { color: var(--text-heading, var(--text, #e2e6f0)); }
+  .site-return .sep { color: var(--border, #2a2f45); }
+  .site-return .here { color: var(--text-heading, var(--text, #e2e6f0)); font-weight: 500; }
+</style>
+</head>
+<body>
+<nav class="site-return"><a href="/">whenkat.com</a><span class="sep">/</span><a href="/docs">Docs</a><span class="sep">/</span><span class="here">Blog Architecture</span></nav>
+
+
+<div class="page">
+  <p class="eyebrow">Infrastructure / Blog</p>
+  <h1>How the blog works</h1>
+  <p class="subtitle">Astro static site → Docker image → Kubernetes → Cloudflare Tunnel → whenkat.com.</p>
+
+  <hr class="divider">
+
+  <h2 id="the-full-pipeline">The full pipeline</h2>
+  <p>Everything is automated from a <code>git push</code>. No manual build steps, no SSH-ing into servers.</p>
+
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <span class="step-label">Write</span>
+      <span class="step-name">Markdown</span>
+      <span class="step-detail">blog/src/content/blog/</span>
+    </div>
+    <div class="pipeline-step">
+      <span class="step-label">Push</span>
+      <span class="step-name">GitHub</span>
+      <span class="step-detail">proxmox-opentofu branch</span>
+    </div>
+    <div class="pipeline-step">
+      <span class="step-label">Build</span>
+      <span class="step-name">Actions</span>
+      <span class="step-detail">Astro → nginx image</span>
+    </div>
+    <div class="pipeline-step">
+      <span class="step-label">Push</span>
+      <span class="step-name">ghcr.io</span>
+      <span class="step-detail">private registry</span>
+    </div>
+    <div class="pipeline-step">
+      <span class="step-label">Deploy</span>
+      <span class="step-name">ArgoCD</span>
+      <span class="step-detail">syncs manifests</span>
+    </div>
+    <div class="pipeline-step">
+      <span class="step-label">Serve</span>
+      <span class="step-name">Live</span>
+      <span class="step-detail">whenkat.com</span>
+    </div>
+  </div>
+
+  <p>The GitHub Actions workflow watches <code>blog/**</code> and only triggers on changes there. A change to an unrelated manifest won't rebuild the blog image.</p>
+
+  <hr class="divider">
+
+  <h2 id="technology-layers">Technology layers</h2>
+
+  <div class="layers">
+    <div class="layer">
+      <span class="layer-icon blue">Astro</span>
+      <span class="layer-name">Static site generator</span>
+      <span class="layer-desc">Compiles Markdown posts into pre-built HTML/CSS/JS at build time. No runtime rendering.</span>
+    </div>
+    <div class="layer">
+      <span class="layer-icon green">nginx</span>
+      <span class="layer-name">File server (pod)</span>
+      <span class="layer-desc">Serves the built static files inside the blog pod. Lightweight — no Node, no app server.</span>
+    </div>
+    <div class="layer">
+      <span class="layer-icon blue">NGF</span>
+      <span class="layer-name">NGINX Gateway Fabric</span>
+      <span class="layer-desc">Routes <code>whenkat.com</code> traffic to the blog service via an HTTPRoute.</span>
+    </div>
+    <div class="layer">
+      <span class="layer-icon purple">cloudflared</span>
+      <span class="layer-name">Tunnel daemon</span>
+      <span class="layer-desc">Connects the cluster to Cloudflare's edge. No open ports on the home router.</span>
+    </div>
+    <div class="layer">
+      <span class="layer-icon blue">Cloudflare</span>
+      <span class="layer-name">Edge / CDN</span>
+      <span class="layer-desc">TLS termination, DDoS protection, caching. Your home IP is never exposed.</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <h2 id="writing-a-new-post">Writing a new post</h2>
+  <p>Create a Markdown file in <code>blog/src/content/blog/</code> with this frontmatter:</p>
+
+  <div class="frontmatter">
+    <div class="frontmatter-bar">blog/src/content/blog/my-new-post.md</div>
+    <pre><code>---
+title: 'My Post Title'
+description: 'One sentence shown in link previews.'
+pubDate: 'Jan 15 2026'
+series: 'AI Server Build'   # groups posts on the index page
+seriesOrder: 3              # position within the series
+---
+
+Your content here in Markdown...</code></pre>
+  </div>
+
+  <p>The <code>series</code> and <code>seriesOrder</code> fields control how the post appears on the landing page. Posts in the same series are grouped together and sorted by <code>seriesOrder</code>. Omit both fields for a standalone post — it lands in "Uncategorized".</p>
+
+  <div class="callout">
+    <strong>To publish:</strong> <code>git add</code> the file, commit, and <code>git push</code>. GitHub Actions builds the image, pushes to ghcr.io, and ArgoCD rolls it out within a couple of minutes.
+  </div>
+
+  <hr class="divider">
+
+  <h2 id="what-the-docker-image-contains">What the Docker image contains</h2>
+  <p>The Dockerfile is a two-stage build. Node is used only at build time and is not present in the final image:</p>
+
+  <pre><code># Stage 1 — build (Node 22 Alpine)
+npm ci && npm run build   # outputs to /app/dist
+
+# Stage 2 — runtime (nginx Alpine)
+# copies /app/dist → /usr/share/nginx/html
+# ~25MB total image, no Node, no npm</code></pre>
+
+  <p>The image is private on <code>ghcr.io</code>. The cluster uses a <code>docker-registry</code> secret named <code>ghcr-pull-secret</code> in the <code>blog</code> namespace to pull it. Recreate it with:</p>
+
+  <pre><code>make blog-pull-secret   # reads secrets/ghcr-pull-token.txt</code></pre>
+
+  <hr class="divider">
+
+  <h2 id="kubernetes-resources">Kubernetes resources</h2>
+
+  <p>All managed by ArgoCD from <code>gitops/manifests/blog/</code>:</p>
+
+  <pre><code>Namespace:   blog
+Deployment:  blog (2 replicas, ghcr.io/pycaster/proxmox-k8s-blog:latest)
+Service:     blog (ClusterIP, port 80)
+HTTPRoute:   blog (whenkat.com + www.whenkat.com → blog:80)</code></pre>
+
+  <p>The HTTPRoute lives in <code>gitops/manifests/gateway/blog-route.yaml</code> and references the <code>homelab</code> Gateway in the <code>default</code> namespace. NGF applies it and begins routing traffic as soon as the blog pods are ready.</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+---
+import { whenkat as site } from '../config';
+const path = Astro.url.pathname;
+---
+<header class="site-header">
+  <a class="wordmark" href={site.home} aria-label="Whenkat home">{site.name}<span class="brand-dot">.</span></a>
+  <nav aria-label="Main navigation">
+    <a href={site.articles} aria-current={path.startsWith('/blog') ? 'page' : undefined}>Articles</a>
+    <a href={site.about} aria-current={path.startsWith('/about') ? 'page' : undefined}>About me</a>
+  </nav>
+  <a class="github" href={site.github} target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+</header>
+<style>
+  nav a[aria-current="page"] { color: var(--acid); }
+</style>

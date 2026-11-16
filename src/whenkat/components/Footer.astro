@@ -1,0 +1,17 @@
+---
+import { whenkat as site } from '../config';
+---
+<footer class="site-footer">
+  <a class="wordmark" href={site.home}>{site.name}<span class="brand-dot">.</span></a>
+  <p>Built out of curiosity. Written from experience.</p>
+  <div><a href={site.about}>About me</a><a href="/docs/">Docs</a><a href={site.rss}>RSS ↗</a><a href={site.github}>GitHub ↗</a><a href={site.medium}>Medium ↗</a></div>
+  <span>© {new Date().getUTCFullYear()} {site.author}</span>
+</footer>
+
+<style>
+  .site-footer { flex-wrap: wrap; }
+  .site-footer > div { flex-wrap: wrap; row-gap: 14px; }
+  @media (max-width: 650px) {
+    .site-footer > div { width: 100%; margin-left: 0; }
+  }
+</style>

@@ -1,0 +1,101 @@
+---
+// A scaled-down diagram lifted from a doc page, linking through to the full version.
+// The docs use their own semantic palette (DNS blue, service purple, Cilium amber,
+// node green, LB pink), so those tokens travel with the diagram rather than
+// inheriting the site's.
+interface Props {
+	svg: string;
+	href: string;
+	label: string;
+	caption: string;
+	/** token name to tint the label with, e.g. "--accent-tls" */
+	accent?: string;
+}
+const { svg, href, label, caption, accent = '--accent-lb' } = Astro.props;
+---
+
+<a class="diagram" href={href} style={`--label-accent: var(${accent})`}>
+	<span class="diagram-frame" set:html={svg} />
+	<span class="diagram-meta">
+		<span class="diagram-label">{label}</span>
+		<span class="diagram-caption">{caption}</span>
+	</span>
+</a>
+
+<style>
+	.diagram {
+		--bg-elevated: #141722;
+		--bg-node: #1a1e2e;
+		--bg-pod: #1e2340;
+		--border: #2a2f45;
+		--text: #c8cdd8;
+		--text-muted: #6b7394;
+		--text-heading: #e2e6f0;
+		--accent-dns: #5b8def;
+		--accent-dns-dim: #2a3d6e;
+		--accent-svc: #c084fc;
+		--accent-svc-dim: #4a2d6e;
+		--accent-cilium: #f59e0b;
+		--accent-cilium-dim: #4a3510;
+		--accent-node: #22c55e;
+		--accent-node-dim: #0d3a1e;
+		--accent-lb: #f472b6;
+		--accent-lb-dim: #4a1535;
+		--accent-tls: #22d3ee;
+		--accent-tls-dim: #0c3644;
+		--accent-cert: #a78bfa;
+		--accent-cert-dim: #2d1f5e;
+		--accent-le: #4ade80;
+		--accent-le-dim: #0d3a1e;
+		--accent-gpu: #76b900;
+		--accent-gpu-dim: #1e3300;
+
+		display: block;
+		margin: 2.5em 0;
+		padding: 1.25rem 1.25rem 1rem;
+		border: 1px solid var(--border);
+		border-radius: 10px;
+		background: #0c0e14;
+		text-decoration: none;
+		transition: border-color 0.15s ease;
+	}
+	.diagram:hover {
+		border-color: #3d4466;
+		text-decoration: none;
+	}
+
+	.diagram-frame {
+		display: block;
+		overflow-x: auto;
+	}
+	.diagram-frame :global(svg) {
+		display: block;
+		width: 100%;
+		min-width: 560px;
+		height: auto;
+	}
+
+	.diagram-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+		margin-top: 0.9rem;
+		padding-top: 0.85rem;
+		border-top: 1px solid var(--border);
+	}
+	.diagram-label {
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: var(--label-accent, var(--accent-lb));
+		font-weight: 600;
+	}
+	.diagram-caption {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+		line-height: 1.5;
+	}
+	.diagram:hover .diagram-caption {
+		color: var(--text);
+	}
+</style>

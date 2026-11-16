@@ -1,0 +1,15 @@
+export const whenkat = {
+  name: 'whenkat',
+  author: 'Venkat Reddy Marepally',
+  description: 'Articles and background from Venkat Reddy Marepally.',
+  articles: '/blog/',
+  home: '/',
+  about: '/about/',
+  rss: '/rss.xml',
+  github: 'https://github.com/pycaster',
+  linkedin: 'https://www.linkedin.com/in/venkat-reddy-m-9a994a19',
+  medium: 'https://medium.com/@whenkat',
+  artwork: '/whenkat/compute-core.png',
+  favicon: '/whenkat/favicon.svg',
+  seriesOrder: ['Building the Homelab', 'Own Your Platform', 'AI Server Build', 'Engineering Notes'],
+};

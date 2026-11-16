@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloudflare Tunnel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --bg: #0c0e14;
+    --surface: #141722;
+    --surface-hi: #1a1e2e;
+    --border: rgba(255,255,255,0.08);
+    --accent: #5b8def;
+    --accent-dim: rgba(59,130,246,0.12);
+    --green: #3fb950;
+    --green-dim: rgba(63,185,80,0.1);
+    --text: #e2e6f0;
+    --muted: #6b7394;
+    --code-bg: #141722;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f6f8fa;
+      --surface: #ffffff;
+      --surface-hi: #f0f2f5;
+      --border: rgba(0,0,0,0.08);
+      --accent: #4a7bd8;
+      --accent-dim: rgba(37,99,235,0.08);
+      --green: #16a34a;
+      --green-dim: rgba(22,163,74,0.08);
+      --text: #1c2128;
+      --muted: #57606a;
+      --code-bg: #f0f3f9;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0e14;
+    --surface: #141722;
+    --surface-hi: #1a1e2e;
+    --border: rgba(255,255,255,0.08);
+    --accent: #5b8def;
+    --accent-dim: rgba(59,130,246,0.12);
+    --green: #3fb950;
+    --green-dim: rgba(63,185,80,0.1);
+    --text: #e2e6f0;
+    --muted: #6b7394;
+    --code-bg: #141722;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .page {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--text);
+    margin: 0 0 0.5rem;
+    text-wrap: balance;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 1rem;
+    margin: 0 0 3rem;
+  }
+
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 2.5rem 0 0.75rem;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 2rem 0 0.5rem;
+  }
+
+  p { margin: 0 0 1rem; color: var(--text); }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  /* Callout */
+  .callout {
+    background: var(--green-dim);
+    border: 1px solid rgba(63,185,80,0.2);
+    border-left: 3px solid var(--green);
+    border-radius: 6px;
+    padding: 1rem 1.2rem;
+    margin: 1.5rem 0;
+    font-size: 0.9rem;
+  }
+  .callout strong { color: var(--green); }
+
+  .callout-blue {
+    background: var(--accent-dim);
+    border: 1px solid rgba(59,130,246,0.2);
+    border-left: 3px solid var(--accent);
+  }
+  .callout-blue strong { color: var(--accent); }
+
+  /* Code */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82em;
+    background: var(--code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    color: var(--text);
+  }
+
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+    overflow-x: auto;
+    margin: 1rem 0 1.5rem;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.83rem;
+    line-height: 1.65;
+  }
+
+  /* Diagram */
+  .diagram-wrap {
+    margin: 2rem 0;
+    overflow-x: auto;
+  }
+  .diagram-wrap svg {
+    display: block;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  /* Steps */
+  .steps { list-style: none; margin: 1rem 0 1.5rem; padding: 0; }
+  .steps li {
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.93rem;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border-radius: 4px;
+    padding: 0.15rem 0.45rem;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 0.1rem;
+  }
+
+  /* Resource table */
+  .resource-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 1rem 0 1.5rem; }
+  .resource-table th {
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .resource-table td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .resource-table tr:last-child td { border-bottom: none; }
+  .resource-table td:first-child { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent); }
+
+  h2[id], h3[id] { scroll-margin-top: 4.5rem; }
+</style>
+
+<style>
+  .site-return {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: .5rem;
+    padding: .7rem 1.25rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: .82rem;
+    background: color-mix(in srgb, var(--bg, #0c0e14) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border, #2a2f45);
+  }
+  .site-return a { color: var(--text-muted, var(--muted, #6b7394)); text-decoration: none; }
+  .site-return a:hover { color: var(--text-heading, var(--text, #e2e6f0)); }
+  .site-return .sep { color: var(--border, #2a2f45); }
+  .site-return .here { color: var(--text-heading, var(--text, #e2e6f0)); font-weight: 500; }
+</style>
+</head>
+<body>
+<nav class="site-return"><a href="/">whenkat.com</a><span class="sep">/</span><a href="/docs">Docs</a><span class="sep">/</span><span class="here">Cloudflare Tunnel</span></nav>
+
+
+<div class="page">
+  <p class="eyebrow">Infrastructure / Networking</p>
+  <h1>How Cloudflare Tunnel works</h1>
+  <p class="subtitle">Serving whenkat.com from a home network — no open ports, no port forwarding, no static IP.</p>
+
+  <hr class="divider">
+
+  <h2 id="the-problem-with-home-internet">The problem with home internet</h2>
+  <p>Home internet connections have three properties that make self-hosting difficult:</p>
+  <ul>
+    <li><strong>Dynamic IP</strong> — your public IP changes whenever your ISP feels like it.</li>
+    <li><strong>NAT</strong> — your router sits between the internet and your devices. Inbound connections have nowhere to go unless you explicitly forward a port.</li>
+    <li><strong>ISP restrictions</strong> — many ISPs block inbound traffic on ports 80 and 443 entirely on residential plans.</li>
+  </ul>
+  <p>The traditional workaround is port forwarding: punch a hole in your router so traffic on port 443 reaches your server. This works, but it exposes your home IP, requires a dynamic DNS solution, and leaves you managing TLS certificates manually.</p>
+
+  <div class="callout">
+    <strong>Cloudflare Tunnel eliminates all of this.</strong> No port forwarding. No exposed home IP. No dynamic DNS. Cloudflare handles TLS.
+  </div>
+
+  <hr class="divider">
+
+  <h2 id="how-the-tunnel-works">How the tunnel works</h2>
+  <p>The key insight: <strong>the connection is outbound</strong>. Your server calls out to Cloudflare — Cloudflare never calls in. Your router sees this as normal outbound HTTPS traffic and lets it through. No rules to configure.</p>
+
+  <p><code>cloudflared</code> is a small daemon that runs inside the cluster. On startup it opens a persistent connection to Cloudflare's edge using QUIC (or HTTPS as fallback). Cloudflare's edge then forwards incoming requests for <code>whenkat.com</code> down that tunnel to cloudflared, which proxies them to the local service.</p>
+
+  <div class="diagram-wrap">
+    <svg viewBox="0 0 680 260" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Traffic flow diagram">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#5b8def"/>
+        </marker>
+        <marker id="arr-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#3fb950"/>
+        </marker>
+      </defs>
+
+      <!-- Browser -->
+      <rect x="10" y="90" width="110" height="56" rx="7" fill="#141722" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="65" y="114" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#e2e6f0" font-weight="600">Browser</text>
+      <text x="65" y="130" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6b7394">whenkat.com</text>
+
+      <!-- Arrow: Browser → Cloudflare -->
+      <line x1="120" y1="118" x2="188" y2="118" stroke="#5b8def" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="154" y="109" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#5b8def">HTTPS</text>
+
+      <!-- Cloudflare Edge -->
+      <rect x="190" y="72" width="130" height="92" rx="7" fill="#141722" stroke="#5b8def" stroke-width="1.5"/>
+      <text x="255" y="100" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" fill="#e2e6f0" font-weight="600">Cloudflare Edge</text>
+      <text x="255" y="118" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6b7394">DDoS protection</text>
+      <text x="255" y="133" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6b7394">TLS termination</text>
+      <text x="255" y="148" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6b7394">WAF</text>
+
+      <!-- Arrow: Cloudflare ↔ cloudflared (tunnel) -->
+      <line x1="320" y1="118" x2="388" y2="118" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr-green)"/>
+      <text x="354" y="108" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#3fb950">tunnel</text>
+      <text x="354" y="133" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#3fb950">outbound only</text>
+
+      <!-- k8s box -->
+      <rect x="388" y="44" width="278" height="178" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.07)" stroke-width="1" stroke-dasharray="5,4"/>
+      <text x="527" y="62" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6b7394" letter-spacing="0.08em">KUBERNETES CLUSTER</text>
+
+      <!-- cloudflared -->
+      <rect x="400" y="90" width="110" height="56" rx="6" fill="#141722" stroke="rgba(63,185,80,0.4)" stroke-width="1.5"/>
+      <text x="455" y="114" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#3fb950" font-weight="500">cloudflared</text>
+      <text x="455" y="130" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6b7394">×2 replicas</text>
+
+      <!-- Arrow: cloudflared → NGF -->
+      <line x1="510" y1="118" x2="542" y2="118" stroke="#5b8def" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- NGF -->
+      <rect x="544" y="90" width="106" height="56" rx="6" fill="#141722" stroke="rgba(59,130,246,0.3)" stroke-width="1.5"/>
+      <text x="597" y="112" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#e2e6f0" font-weight="600">NGF</text>
+      <text x="597" y="127" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6b7394">HTTPRoute</text>
+      <text x="597" y="140" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6b7394">→ blog svc</text>
+
+      <!-- Home router label -->
+      <rect x="10" y="200" width="310" height="22" rx="4" fill="rgba(63,185,80,0.06)" stroke="rgba(63,185,80,0.15)" stroke-width="1"/>
+      <text x="165" y="215" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#3fb950">home router — no open ports required</text>
+    </svg>
+  </div>
+
+  <ol class="steps">
+    <li><span class="step-num">01</span><span>Browser sends HTTPS request for <code>whenkat.com</code>. DNS resolves to Cloudflare's edge via the CNAME <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</span></li>
+    <li><span class="step-num">02</span><span>Cloudflare terminates TLS, applies DDoS protection and WAF rules, then looks up which tunnel is registered for <code>whenkat.com</code>.</span></li>
+    <li><span class="step-num">03</span><span>The request is forwarded down the persistent tunnel connection to the <code>cloudflared</code> pod inside the cluster. This connection was opened <em>outbound</em> by cloudflared at startup — your router never sees inbound traffic.</span></li>
+    <li><span class="step-num">04</span><span>cloudflared proxies the request to <code>http://blog.blog.svc.cluster.local:80</code> as configured in the tunnel ingress rules.</span></li>
+    <li><span class="step-num">05</span><span>The blog pod serves the pre-built static HTML/CSS/JS. Response travels back the same path.</span></li>
+  </ol>
+
+  <hr class="divider">
+
+  <h2 id="what-runs-in-the-cluster">What runs in the cluster</h2>
+  <p>The tunnel is provisioned entirely with OpenTofu. Three resources:</p>
+
+  <table class="resource-table">
+    <thead>
+      <tr><th>Resource</th><th>What it does</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>cloudflare_zero_trust_tunnel_cloudflared</td>
+        <td>Creates the tunnel in Cloudflare. Generates a secret token the cloudflared daemon uses to authenticate.</td>
+      </tr>
+      <tr>
+        <td>cloudflare_zero_trust_tunnel_cloudflared_config</td>
+        <td>Defines ingress rules — which hostnames route to which internal services.</td>
+      </tr>
+      <tr>
+        <td>cloudflare_record</td>
+        <td>Creates the CNAME records for <code>whenkat.com</code> and <code>www.whenkat.com</code> pointing at <code>&lt;tunnel-id&gt;.cfargotunnel.com</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>The token is stored in a Kubernetes secret in the <code>cloudflared</code> namespace and mounted as <code>TUNNEL_TOKEN</code> into the deployment:</p>
+
+  <pre><code>kubectl create secret generic cloudflared-token \
+  --from-literal=token=$(cat secrets/cloudflared-token.txt) \
+  -n cloudflared</code></pre>
+
+  <p>The cloudflared Deployment runs 2 replicas for availability. Each pod opens its own connection to Cloudflare's edge — if one pod restarts, traffic continues through the other.</p>
+
+  <hr class="divider">
+
+  <h2 id="why-this-is-more-secure-than-port-forwarding">Why this is more secure than port forwarding</h2>
+
+  <div class="callout">
+    <strong>Your home IP is never exposed.</strong> DNS for whenkat.com resolves to Cloudflare's IPs, not yours. Even if someone enumerates your DNS records, they see Cloudflare.
+  </div>
+
+  <div class="callout callout-blue">
+    <strong>No attack surface on your router.</strong> Port 443 is not open. There is no service listening for inbound connections at the network boundary. The only traffic crossing your router is outbound HTTPS from cloudflared to Cloudflare's edge.
+  </div>
+
+  <p>Cloudflare's edge absorbs volumetric DDoS attacks before they reach your network. Your home connection never sees the traffic spike.</p>
+</div>
+
+</body>
+</html>

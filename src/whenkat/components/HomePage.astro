@@ -1,0 +1,14 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { whenkat as site } from '../config';
+import '../styles/professional-home.css';
+---
+<SiteLayout title={site.author} description={site.description} minimal>
+  <main class="professional-home" id="main-content">
+    <h1>{site.author}</h1>
+    <nav aria-label="Articles and about me">
+      <a href={site.articles}>Articles</a>
+      <a href={site.about}>About me</a>
+    </nav>
+  </main>
+</SiteLayout>

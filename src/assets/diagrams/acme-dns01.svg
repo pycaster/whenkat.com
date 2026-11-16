@@ -1,0 +1,81 @@
+<svg viewBox="0 0 860 440" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr2-cert" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-cert)"/>
+        </marker>
+        <marker id="arr2-dns" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-dns)"/>
+        </marker>
+        <marker id="arr2-le" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-le)"/>
+        </marker>
+        <marker id="arr2-tls" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent-tls)"/>
+        </marker>
+      </defs>
+
+      <!-- Your K8s cluster box -->
+      <rect x="20" y="10" width="440" height="420" rx="6" fill="none" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4"/>
+      <text x="36" y="32" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)" font-weight="500">K8s Cluster</text>
+
+      <!-- Step 1: cert-manager sees Gateway annotation -->
+      <rect x="40" y="50" width="200" height="55" rx="4" fill="var(--bg-pod)" stroke="var(--accent-cert)" stroke-width="1.5"/>
+      <text x="56" y="70" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-cert)" font-weight="600">cert-manager</text>
+      <text x="56" y="88" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">sees annotation on</text>
+      <text x="56" y="100" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">Gateway "homelab"</text>
+
+      <rect x="270" y="50" width="170" height="55" rx="4" fill="var(--accent-cert-dim)" stroke="var(--accent-cert)" stroke-width="1"/>
+      <text x="286" y="68" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-cert)" font-weight="500">1  Creates:</text>
+      <text x="286" y="84" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--text-muted)">Certificate CR</text>
+      <text x="286" y="98" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--text-muted)">→ Order → Challenge</text>
+      <line x1="240" y1="78" x2="266" y2="78" stroke="var(--accent-cert)" stroke-width="1.5" marker-end="url(#arr2-cert)"/>
+
+      <!-- Step 2: cert-manager calls webhook -->
+      <rect x="40" y="140" width="200" height="50" rx="4" fill="var(--bg-pod)" stroke="var(--accent-dns)" stroke-width="1.5"/>
+      <text x="56" y="160" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-dns)" font-weight="600">DuckDNS webhook</text>
+      <text x="56" y="178" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">in cert-manager ns</text>
+
+      <rect x="270" y="140" width="170" height="50" rx="4" fill="var(--accent-cert-dim)" stroke="var(--accent-cert)" stroke-width="1"/>
+      <text x="286" y="158" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-cert)" font-weight="500">2  Routes DNS-01</text>
+      <text x="286" y="174" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--text-muted)">challenge to webhook</text>
+      <line x1="140" y1="105" x2="140" y2="136" stroke="var(--accent-cert)" stroke-width="1.5" marker-end="url(#arr2-cert)"/>
+
+      <!-- Step 3: webhook calls DuckDNS API -->
+      <rect x="520" y="140" width="310" height="50" rx="4" fill="var(--bg-node)" stroke="var(--accent-dns)" stroke-width="1.5"/>
+      <text x="536" y="160" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-dns)" font-weight="600">DuckDNS API</text>
+      <text x="536" y="178" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">duckdns.org/update?txt=&lt;challenge&gt;</text>
+      <line x1="440" y1="165" x2="516" y2="165" stroke="var(--accent-dns)" stroke-width="1.5" marker-end="url(#arr2-dns)"/>
+
+      <rect x="270" y="210" width="170" height="30" rx="4" fill="var(--accent-dns-dim)" stroke="var(--accent-dns)" stroke-width="1"/>
+      <text x="286" y="230" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-dns)" font-weight="500">3  Sets TXT record</text>
+
+      <!-- DNS record visualization -->
+      <rect x="520" y="210" width="310" height="50" rx="4" fill="var(--accent-dns-dim)" stroke="var(--accent-dns)" stroke-width="1"/>
+      <text x="536" y="228" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-dns)" font-weight="500">_acme-challenge.homelab.duckdns.org</text>
+      <text x="536" y="248" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">TXT "xY9z_random_challenge_token..."</text>
+      <line x1="630" y1="190" x2="630" y2="206" stroke="var(--accent-dns)" stroke-width="1.5" marker-end="url(#arr2-dns)"/>
+
+      <!-- Step 4: Let's Encrypt verifies -->
+      <rect x="520" y="290" width="310" height="55" rx="4" fill="var(--bg-node)" stroke="var(--accent-le)" stroke-width="1.5"/>
+      <text x="536" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-le)" font-weight="600">Let's Encrypt ACME</text>
+      <text x="536" y="328" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">queries DNS for TXT record</text>
+      <text x="536" y="340" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--accent-le)">✓ match → issues certificate</text>
+      <line x1="630" y1="260" x2="630" y2="286" stroke="var(--accent-le)" stroke-width="1.5" marker-end="url(#arr2-le)"/>
+
+      <rect x="270" y="290" width="170" height="30" rx="4" fill="var(--accent-le-dim)" stroke="var(--accent-le)" stroke-width="1"/>
+      <text x="286" y="310" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-le)" font-weight="500">4  Verifies ownership</text>
+
+      <!-- Step 5: cert-manager stores cert -->
+      <rect x="40" y="290" width="200" height="55" rx="4" fill="var(--bg-pod)" stroke="var(--accent-tls)" stroke-width="1.5"/>
+      <text x="56" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--accent-tls)" font-weight="600">K8s Secret</text>
+      <text x="56" y="328" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">name: homelab-tls</text>
+      <text x="56" y="340" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--text-muted)">tls.crt + tls.key</text>
+      <line x1="516" y1="315" x2="244" y2="315" stroke="var(--accent-le)" stroke-width="1.5" marker-end="url(#arr2-le)"/>
+
+      <rect x="270" y="360" width="170" height="30" rx="4" fill="var(--accent-tls-dim)" stroke="var(--accent-tls)" stroke-width="1"/>
+      <text x="286" y="380" font-family="JetBrains Mono, monospace" font-size="8.5" fill="var(--accent-tls)" font-weight="500">5  Stores cert as Secret</text>
+
+      <!-- Step 6: NGINX picks up cert -->
+      <rect x="40" y="380" width="200" height="40" rx="4" fill="var(--accent-tls-dim)" stroke="var(--accent-tls)" stroke-width="1"/>
+      <text x="56" y="404" font-family="JetBrains Mono, monospace" font-size="9" fill="var(--accent-tls)" font-weight="500">6  NGF reloads with new cert</text>
+    </svg>

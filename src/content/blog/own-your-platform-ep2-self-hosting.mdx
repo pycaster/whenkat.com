@@ -1,0 +1,192 @@
+---
+title: 'Hosting from home with Cloudflare Tunnel, no port forwarding'
+description: 'How I serve whenkat.com from a home server without port forwarding, a static IP, or exposing anything to the internet. The trick is Cloudflare Tunnel, and the connection is outbound.'
+pubDate: 'Sep 04 2026'
+series: 'Own Your Platform'
+seriesOrder: 2
+---
+
+import DiagramLink from '../../components/DiagramLink.astro';
+import tunnelFlow from '../../assets/diagrams/tunnel-flow.svg?raw';
+
+
+In [episode 1](/blog/own-your-platform-ep1-leaving-medium) I moved my blog off Medium onto a static Astro site. What I didn't explain is where it actually runs.
+
+Not a VPS. Not AWS. My home server, the same one running Kubernetes, Proxmox, and a pile of self-hosted services. Behind a regular residential internet connection.
+
+If you've tried this before, you know the problem.
+
+## The home internet problem
+
+Home internet connections are not designed for inbound traffic. Three things make self-hosting annoying:
+
+**Dynamic IP.** Your public IP changes whenever your ISP feels like it. You can't publish a DNS record pointing at something that moves.
+
+**NAT.** Your router sits between the internet and your devices. When a request arrives for port 443, the router has no idea where to send it unless you've explicitly configured port forwarding.
+
+**ISP restrictions.** Many residential ISPs block inbound traffic on ports 80 and 443 entirely. You might not even know until you've already wasted an afternoon debugging it.
+
+The classic workaround is port forwarding. Punch a hole in your router, point it at your server, set up dynamic DNS to chase your changing IP, manage your own TLS certificates. It works. It's also annoying to maintain and leaves your home IP visible in DNS records.
+
+I didn't want to do any of that.
+
+## Cloudflare Tunnel
+
+The fix is Cloudflare Tunnel, and the key insight is simple: **the connection is outbound**.
+
+A small daemon called `cloudflared` runs inside my cluster. On startup it opens a persistent connection to Cloudflare's edge. Outbound HTTPS, the same kind of traffic your router happily lets through for everything else. Your router sees nothing unusual.
+
+When a request comes in for `whenkat.com`, Cloudflare's edge forwards it down that open tunnel to `cloudflared`, which proxies it to the right service internally. The response goes back the same way.
+
+Your home IP never appears in DNS. The CNAME for `whenkat.com` points to a Cloudflare address. Cloudflare handles TLS. If someone tries to DDoS the site, Cloudflare absorbs it before it touches your network.
+
+<DiagramLink
+	svg={tunnelFlow}
+	href="/docs/cloudflare-tunnel.html#how-the-tunnel-works"
+	label="Diagram"
+	caption="Browser to Cloudflare to the tunnel to a pod, with the one connection that matters drawn outbound."
+	accent="--accent-tls"
+/>
+
+No port forwarding. No dynamic DNS. No certificates to renew.
+
+## Where the tunnel actually points
+
+This is the part I glossed over the first time I wrote about this, and it's the part that makes the whole thing work.
+
+The tunnel does not point at the blog. It points at my gateway:
+
+```hcl
+tunnel_ingress = [
+  {
+    hostname = "whenkat.com"
+    service  = "http://homelab-nginx.default.svc.cluster.local:80"
+  }
+]
+```
+
+That service is NGINX Gateway Fabric sitting inside the cluster. So `cloudflared` receives a request for `whenkat.com` and hands it straight to the gateway, which then decides where it goes based on the hostname.
+
+That indirection is the reason this scales past one site. The tunnel doesn't need to know what a blog is. Adding a second hostname later means one more ingress rule and one more route, not a second tunnel.
+
+## Where HTTPS actually terminates
+
+That ingress rule points at port 80, which looks wrong the first time you see it. The site is HTTPS. Why is the tunnel sending traffic to a plain HTTP port?
+
+Because by that point in the journey, the TLS session is already over.
+
+Both DNS records are proxied, which is the important flag:
+
+```hcl
+resource "cloudflare_record" "whenkat_root" {
+  name    = "@"
+  content = "${tunnel_id}.cfargotunnel.com"
+  type    = "CNAME"
+  proxied = true
+}
+```
+
+Proxied means a browser resolving `whenkat.com` gets one of Cloudflare's addresses, not a CNAME it has to chase. So the browser opens its connection to Cloudflare and does the TLS handshake there, against a certificate Cloudflare issued for my domain. That handshake completes at the edge and never comes anywhere near my house.
+
+What continues inward is a decrypted request with a `Host: whenkat.com` header on it. That header is the only thing that survives the whole trip, and it's what everything downstream routes on. Cloudflare uses it to pick the tunnel. `cloudflared` uses it to match an ingress rule. The gateway uses it to match an HTTPRoute.
+
+So my cluster never performs a TLS handshake for `whenkat.com`. It has no certificate for that domain and doesn't need one. Port 80 is correct because the traffic reaching it has already been decrypted by Cloudflare and is travelling inside my own network.
+
+The gateway does have an HTTPS listener with a real Let's Encrypt certificate, issued through a DNS01 challenge. That one is for reaching internal services from my LAN, on a different domain entirely. It has nothing to do with this path, and pointing the tunnel at it would actually break things, since it would present a certificate for the wrong hostname.
+
+`cloudflared` itself runs as a Deployment with 2 replicas, each holding its own connection to Cloudflare's edge. If one pod restarts, traffic keeps flowing through the other.
+
+The tunnel, its ingress rules, and the DNS records are all provisioned with OpenTofu, so there's no clicking around in the Cloudflare dashboard. Cloudflare hands back a token for the tunnel, which goes into a Kubernetes secret so the pods can authenticate:
+
+```bash
+kubectl create namespace cloudflared
+
+kubectl -n cloudflared create secret generic cloudflared-token \
+  --from-literal=token="$TUNNEL_TOKEN" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+The `--dry-run=client -o yaml | kubectl apply -f -` part is worth knowing if you haven't seen it. `kubectl create secret` fails if the secret already exists, which makes it useless in anything you run twice. Rendering the YAML and piping it to `apply` gives you create-or-update instead, so rotating the token is the same command as setting it the first time.
+
+## The blog is just an app
+
+Once the tunnel reaches the gateway, the blog is nothing special. It's three small pieces of YAML, the same shape as everything else in the cluster.
+
+A **Deployment** running two Nginx pods that serve the static files Astro built:
+
+```yaml
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: blog
+          image: ghcr.io/pycaster/proxmox-k8s-blog:latest
+```
+
+A **Service** in front of them, so the pods can be reached by name rather than by IP.
+
+And an **HTTPRoute**, which is what tells the gateway that this hostname belongs to this service:
+
+```yaml
+spec:
+  parentRefs:
+    - name: homelab
+      namespace: default
+  hostnames:
+    - whenkat.com
+    - www.whenkat.com
+  rules:
+    - backendRefs:
+        - name: blog
+          port: 80
+```
+
+That HTTPRoute is the last link in the chain. Cloudflare knows the tunnel, the tunnel knows the gateway, and the gateway knows this route.
+
+## Nothing here was applied by hand
+
+I didn't run `kubectl apply` on any of that. The manifests live in a git repo, and ArgoCD watches that repo and makes the cluster match it.
+
+Adding the blog to my cluster meant adding one file that pointed ArgoCD at the directory holding those manifests. It created the namespace, pulled the image, and started the pods on its own. If I delete that file, it removes all of it again.
+
+I wrote about how that's set up in [the ArgoCD episode](/blog/homelab-ep5-argocd) of the homelab series, so I won't repeat it here.
+
+## Publishing a post, end to end
+
+When I push a new post:
+
+1. GitHub Actions notices a change under `blog/**`
+2. Astro compiles the site and the result gets baked into an Nginx image
+3. The image goes to a private registry on ghcr.io
+4. ArgoCD sees the change and rolls out the deployment
+5. Live, usually inside three minutes
+
+And when someone then visits the site:
+
+```
+Browser asks for whenkat.com
+  DNS returns a Cloudflare address, never mine
+  the TLS handshake completes at Cloudflare, against their cert for my domain
+  Cloudflare finds the tunnel registered for that hostname
+  the request goes down the connection cloudflared opened outbound
+  cloudflared hands it to the gateway service
+  the gateway matches whenkat.com against the HTTPRoute
+  an Nginx pod serves a file Astro built
+```
+
+Seven steps, and the only one I touch is the first line of the first list.
+
+## What it costs
+
+Cloudflare Tunnel is free on the free plan. The server hardware I already own. The only ongoing cost is electricity.
+
+The tradeoff is complexity. This stack has more moving parts than a $12/month VPS. There are more things that can break, and when they do, debugging them is a good way to spend a Saturday afternoon.
+
+But that's also the point. I learn more running this than I would paying someone else to run it for me. And when it works, it really works.
+
+## More to come
+
+The blog is live. The pipeline is automated. Writing a new post is a Markdown file and a git push.
+
+Which was the whole point. The thing I write on is now part of the thing I write about.

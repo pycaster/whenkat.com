@@ -1,0 +1,17 @@
+---
+// Illustrative Astro Content Layer route: src/pages/blog/[...id].astro
+// Prefer changing only the layout in YOUR existing route instead of replacing it.
+import { getCollection, render } from 'astro:content';
+import PostLayout from '../../whenkat/layouts/PostLayout.astro';
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  return posts.map(post => ({ params: { id: post.id }, props: { post } }));
+}
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+<PostLayout title={post.data.title} date={post.data.pubDate} description={post.data.description} series={post.data.series}>
+  <Content />
+  <!-- Put your current comments component here with slot="comments".
+       Keep its existing repo/category/mapping identifiers unchanged. -->
+</PostLayout>
